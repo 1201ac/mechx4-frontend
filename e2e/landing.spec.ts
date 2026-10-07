@@ -1,0 +1,35 @@
+import { test, expect } from '@playwright/test';
+
+test.describe('Phase 3 Landing Page', () => {
+  test('renders hero headline, count-ups from overview API, and SVG network', async ({ page }) => {
+    const consoleErrors: string[] = [];
+    page.on('console', msg => {
+      if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+
+    await page.goto('/');
+
+    // Hero Headline
+    await expect(page.getByText('Know which roads are open before your convoy leaves.')).toBeVisible();
+
+    // Buttons
+    await expect(page.getByRole('link', { name: 'Sign in' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'View the live map' }).first()).toBeVisible();
+
+    // Count-ups text check
+    await expect(page.getByText('Districts monitored')).toBeVisible();
+    await expect(page.getByText('Segments tracked')).toBeVisible();
+
+    // SVG elements
+    const svgElement = page.locator('svg[viewBox="0 0 500 450"]');
+    await expect(svgElement).toBeVisible();
+
+    expect(consoleErrors).toHaveLength(0);
+  });
+
+  test('responsive viewport check at 390px mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/');
+    await expect(page.getByText('Know which roads are open before your convoy leaves.')).toBeVisible();
+  });
+});
