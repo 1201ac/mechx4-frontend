@@ -1,0 +1,9 @@
+{
+  "name": "nerlogix-root",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "devDependencies": {
+    "@playwright/test": "^1.47.2"
+  }
+}
