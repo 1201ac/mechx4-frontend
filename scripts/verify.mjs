@@ -70,11 +70,22 @@ async function runVerify() {
   appProc.stdout.on('data', chunk => appLogs += chunk)
   appProc.stderr.on('data', chunk => appLogs += chunk)
 
+  function stopAppProc() {
+    console.log('Stopping server...')
+    if (process.platform === 'win32') {
+      try {
+        execSync(`taskkill /F /PID ${appProc.pid} /T`, { stdio: 'ignore' })
+      } catch {}
+    } else {
+      appProc.kill('SIGKILL')
+    }
+  }
+
   const isUp = await waitForHealth(port)
   if (!isUp) {
     console.error('FAIL: Server failed to start or health check timed out.')
     console.error('Server logs:\n', appLogs.slice(-2000))
-    appProc.kill()
+    stopAppProc()
     process.exit(1)
   }
   console.log('Server is healthy on port', port)
@@ -88,11 +99,10 @@ async function runVerify() {
     console.log('E2E tests passed.')
   } catch (err) {
     console.error('FAIL: Playwright tests failed.')
-    appProc.kill()
+    stopAppProc()
     process.exit(1)
   } finally {
-    console.log('Stopping server...')
-    appProc.kill()
+    stopAppProc()
     try {
       fs.rmSync(tempDbDir, { recursive: true, force: true })
     } catch {}

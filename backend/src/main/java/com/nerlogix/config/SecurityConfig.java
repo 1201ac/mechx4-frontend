@@ -1,7 +1,9 @@
 package com.nerlogix.config;
 
+import com.nerlogix.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -10,11 +12,18 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -31,7 +40,9 @@ public class SecurityConfig {
                 .requestMatchers(
                     "/api/health",
                     "/api/public/**",
-                    "/api/auth/**",
+                    "/api/auth/register",
+                    "/api/auth/login",
+                    "/api/auth/refresh",
                     "/api/docs/**",
                     "/swagger-ui.html",
                     "/swagger-ui/**",
@@ -47,8 +58,26 @@ public class SecurityConfig {
                     "/*.ico",
                     "/manifest.json"
                 ).permitAll()
-                .anyRequest().permitAll() // Temporary for Phase 1; full JWT auth in Phase 2
-            );
+
+                // Admin endpoints
+                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/integrations/**").hasAnyRole("ADMIN", "MODERATOR")
+
+                // Moderator & Admin endpoints
+                .requestMatchers(HttpMethod.PATCH, "/api/roads/*/status").hasAnyRole("MODERATOR", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/field-reports/*/verify").hasAnyRole("MODERATOR", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/field-reports/*/reject").hasAnyRole("MODERATOR", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/incidents/*/resolve").hasAnyRole("MODERATOR", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/alerts/*/ack").hasAnyRole("MODERATOR", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/alerts/*/resolve").hasAnyRole("MODERATOR", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/notifications/broadcast").hasAnyRole("MODERATOR", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/settings/emergency").hasAnyRole("MODERATOR", "ADMIN")
+
+                // Authenticated endpoints for all roles
+                .requestMatchers("/api/**").authenticated()
+                .anyRequest().permitAll()
+            )
+            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

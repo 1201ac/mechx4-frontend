@@ -36,7 +36,7 @@ try {
   copyDirSync(path.join(rootDir, 'frontend', 'dist'), staticDir)
 
   console.log('Building backend JAR...')
-  execSync(`${mvnCmd} -q -DskipTests package`, { cwd: path.join(rootDir, 'backend'), stdio: 'inherit' })
+  execSync(`${mvnCmd} -q -DskipTests clean package`, { cwd: path.join(rootDir, 'backend'), stdio: 'inherit' })
 
   console.log('Build completed successfully: backend/target/nerlogix.jar')
 } catch (err) {

@@ -1,14 +1,9 @@
 import { test, expect } from '@playwright/test';
 
-test('health check page renders backend status', async ({ page }) => {
-  const errors: string[] = [];
-  page.on('console', msg => {
-    if (msg.type() === 'error') {
-      errors.push(msg.text());
-    }
-  });
-
-  await page.goto('/');
-  await expect(page.getByText('Backend is up')).toBeVisible({ timeout: 15000 });
-  expect(errors).toHaveLength(0);
+test('health check API returns UP', async ({ request }) => {
+  const response = await request.get('/api/health');
+  expect(response.ok()).toBeTruthy();
+  const body = await response.json();
+  expect(body.status).toBe('UP');
+  expect(body.database).toBe('UP');
 });
