@@ -8,5 +8,6 @@ import java.util.Optional;
 
 public interface WeatherLogRepository extends JpaRepository<WeatherLog, Long> {
     Optional<WeatherLog> findFirstByDistrictIdOrderByLoggedAtDesc(Long districtId);
+    List<WeatherLog> findByDistrictIdOrderByLoggedAtDesc(Long districtId);
     List<WeatherLog> findByDistrictIdAndLoggedAtAfterOrderByLoggedAtDesc(Long districtId, LocalDateTime after);
 }

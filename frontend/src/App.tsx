@@ -8,6 +8,7 @@ import { Register } from './pages/Register'
 import { Dashboard } from './pages/Dashboard'
 import { MapPage } from './pages/MapPage'
 import { RoadsPage } from './pages/RoadsPage'
+import { WeatherPage } from './pages/WeatherPage'
 
 export default function App() {
   return (
@@ -46,6 +47,17 @@ export default function App() {
               <RoleGuard>
                 <AppShell>
                   <RoadsPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/weather"
+            element={
+              <RoleGuard>
+                <AppShell>
+                  <WeatherPage />
                 </AppShell>
               </RoleGuard>
             }
