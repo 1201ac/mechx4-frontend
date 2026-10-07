@@ -1,0 +1,19 @@
+:root {
+  --mist-50: #F7F9F8;
+  --mist-100: #EEF3F1;
+  --mist-200: #DCE6E2;
+  --white: #FFFFFF;
+  --ink-900: #13211D;
+  --ink-600: #4A5B56;
+  --ink-400: #7B8A85;
+  --river-600: #14597A;
+  --river-700: #0F4660;
+  --river-100: #DDEBF3;
+  --tea-500: #2F8F5B;
+  --tea-100: #E0F2E8;
+  --marigold-500: #D98A00;
+  --marigold-100: #FBEFD2;
+  --rust-600: #C6403A;
+  --rust-100: #FBE3E1;
+  --sky-500: #2F7FD0;
+}
