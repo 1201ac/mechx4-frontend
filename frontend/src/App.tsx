@@ -6,6 +6,8 @@ import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { Dashboard } from './pages/Dashboard'
+import { MapPage } from './pages/MapPage'
+import { RoadsPage } from './pages/RoadsPage'
 
 export default function App() {
   return (
@@ -32,7 +34,18 @@ export default function App() {
             element={
               <RoleGuard>
                 <AppShell>
-                  <Dashboard />
+                  <MapPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/roads"
+            element={
+              <RoleGuard>
+                <AppShell>
+                  <RoadsPage />
                 </AppShell>
               </RoleGuard>
             }

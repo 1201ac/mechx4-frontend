@@ -11,7 +11,7 @@
 ## Phase Checklist
 - [x] Phase 1: Foundation (Maven wrapper, Spring Boot app, Vite frontend, scripts, Playwright)
 - [x] Phase 2: Schema, seed, auth, first slice
-- [ ] Phase 3: Landing page
+- [x] Phase 3: Landing page
 - [ ] Phase 4: GIS dashboard, roads, blocked route status
 - [ ] Phase 5: Weather and rule engine
 - [ ] Phase 6: Route planner

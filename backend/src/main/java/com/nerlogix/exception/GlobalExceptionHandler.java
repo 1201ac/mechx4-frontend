@@ -59,8 +59,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(res);
     }
 
-    @ExceptionHandler(NoSuchElementException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(NoSuchElementException ex, HttpServletRequest request) {
+    @ExceptionHandler({NoSuchElementException.class, ResourceNotFoundException.class})
+    public ResponseEntity<ErrorResponse> handleNotFound(Exception ex, HttpServletRequest request) {
         ErrorResponse res = ErrorResponse.of(
             HttpStatus.NOT_FOUND.value(),
             "Not Found",
