@@ -10,6 +10,8 @@ import { MapPage } from './pages/MapPage'
 import { RoadsPage } from './pages/RoadsPage'
 import { WeatherPage } from './pages/WeatherPage'
 
+import { RoutePlannerPage } from './pages/RoutePlannerPage'
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -58,6 +60,17 @@ export default function App() {
               <RoleGuard>
                 <AppShell>
                   <WeatherPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/planner"
+            element={
+              <RoleGuard>
+                <AppShell>
+                  <RoutePlannerPage />
                 </AppShell>
               </RoleGuard>
             }
