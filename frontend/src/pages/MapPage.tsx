@@ -8,6 +8,7 @@ import { getRoadDetail, updateRoadStatus } from '../api/roads';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../hooks/useRealtime';
 import { Layers, X } from 'lucide-react';
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
 
 // Custom SVG Markers
 const createBridgeIcon = () =>
@@ -372,6 +373,15 @@ export const MapPage: React.FC = () => {
                 <p className="text-xs text-ink-600 italic">"{selectedSegmentDetail.statusReason}"</p>
               )}
             </div>
+
+            {/* Google Maps Embed Location View */}
+            <GoogleMapEmbed
+              lat={(selectedSegmentDetail.fromLat + selectedSegmentDetail.toLat) / 2}
+              lng={(selectedSegmentDetail.fromLng + selectedSegmentDetail.toLng) / 2}
+              zoom={11}
+              height="160px"
+              title={`Google Maps - ${selectedSegmentDetail.name}`}
+            />
 
             {/* Risk Breakdown Panel: Why is this risky? */}
             <div className="space-y-2">
