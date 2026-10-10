@@ -18,7 +18,6 @@ test.describe('Phase 2 Authentication & Role Access', () => {
       await page.fill('input[type="email"]', acc.email);
       await page.fill('input[type="password"]', acc.pass);
       await page.click('button[type="submit"]');
-
       await expect(page).toHaveURL(/.*dashboard/);
       await expect(page.getByText(`Role: ${acc.role}`)).toBeVisible();
       expect(consoleErrors).toHaveLength(0);

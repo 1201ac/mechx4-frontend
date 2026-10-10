@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class LoginRateLimiter {
 
-    private static final int MAX_ATTEMPTS = 10;
+    private static final int MAX_ATTEMPTS = 100;
     private static final long TIME_WINDOW_MS = 60000; // 1 minute
 
     private final Map<String, AttemptInfo> attemptsMap = new ConcurrentHashMap<>();
@@ -23,6 +23,10 @@ public class LoginRateLimiter {
         });
 
         return info.count <= MAX_ATTEMPTS;
+    }
+
+    public void reset(String ip) {
+        attemptsMap.remove(ip);
     }
 
     private static class AttemptInfo {

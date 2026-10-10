@@ -12,7 +12,6 @@ test.describe('Phase 4 GIS Dashboard, Roads & Blocked Route Status', () => {
     await page.fill('input[type="email"]', 'moderator@nerlogix.com');
     await page.fill('input[type="password"]', 'Demo@1234');
     await page.click('button[type="submit"]');
-
     await expect(page).toHaveURL(/.*dashboard/);
     await expect(page.getByText('Role: MODERATOR')).toBeVisible();
 

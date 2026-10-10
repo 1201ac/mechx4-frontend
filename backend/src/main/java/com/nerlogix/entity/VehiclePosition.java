@@ -21,6 +21,8 @@ public class VehiclePosition {
     @Column(nullable = false)
     private Double lng;
 
+    private Double heading = 0.0;
+
     @Column(name = "speed_kmph")
     private Double speedKmph = 0.0;
 
@@ -29,11 +31,12 @@ public class VehiclePosition {
 
     public VehiclePosition() {}
 
-    public VehiclePosition(Vehicle vehicle, Double lat, Double lng, Double speedKmph) {
+    public VehiclePosition(Vehicle vehicle, Double lat, Double lng, Double heading, Double speedKmph) {
         this.vehicle = vehicle;
         this.lat = lat;
         this.lng = lng;
-        this.speedKmph = speedKmph;
+        this.heading = heading != null ? heading : 0.0;
+        this.speedKmph = speedKmph != null ? speedKmph : 0.0;
     }
 
     public Long getId() { return id; }
@@ -47,6 +50,9 @@ public class VehiclePosition {
 
     public Double getLng() { return lng; }
     public void setLng(Double lng) { this.lng = lng; }
+
+    public Double getHeading() { return heading; }
+    public void setHeading(Double heading) { this.heading = heading; }
 
     public Double getSpeedKmph() { return speedKmph; }
     public void setSpeedKmph(Double speedKmph) { this.speedKmph = speedKmph; }

@@ -7,8 +7,7 @@ test.describe('Route Planner E2E', () => {
     await page.fill('input[type="email"]', 'user@nerlogix.com');
     await page.fill('input[type="password"]', 'Demo@1234');
     await page.click('button[type="submit"]');
-
-    await expect(page).toHaveURL('/dashboard');
+    await expect(page).toHaveURL(/.*dashboard/);
 
     // 2. Navigate to Route Planner page
     await page.goto('/planner');

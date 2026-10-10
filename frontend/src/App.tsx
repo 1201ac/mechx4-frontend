@@ -9,8 +9,20 @@ import { Dashboard } from './pages/Dashboard'
 import { MapPage } from './pages/MapPage'
 import { RoadsPage } from './pages/RoadsPage'
 import { WeatherPage } from './pages/WeatherPage'
-
 import { RoutePlannerPage } from './pages/RoutePlannerPage'
+import { VehiclesPage } from './pages/VehiclesPage'
+import { ShipmentsPage } from './pages/ShipmentsPage'
+import { FieldReportPage } from './pages/FieldReportPage'
+import { PendingReportsPage } from './pages/PendingReportsPage'
+import { IncidentsPage } from './pages/IncidentsPage'
+import { AlertsPage } from './pages/AlertsPage'
+import { NotificationsPage } from './pages/NotificationsPage'
+import { DriverPage } from './pages/DriverPage'
+import { UserManagementPage } from './pages/admin/UserManagementPage'
+import { RuleConfigPage } from './pages/admin/RuleConfigPage'
+import { ApiKeysPage } from './pages/admin/ApiKeysPage'
+import { AuditLogPage } from './pages/admin/AuditLogPage'
+import { DemoToolsPage } from './pages/admin/DemoToolsPage'
 
 export default function App() {
   return (
@@ -71,6 +83,149 @@ export default function App() {
               <RoleGuard>
                 <AppShell>
                   <RoutePlannerPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/vehicles"
+            element={
+              <RoleGuard>
+                <AppShell>
+                  <VehiclesPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/shipments"
+            element={
+              <RoleGuard>
+                <AppShell>
+                  <ShipmentsPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/field-report"
+            element={
+              <RoleGuard>
+                <AppShell>
+                  <FieldReportPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/pending-reports"
+            element={
+              <RoleGuard>
+                <AppShell>
+                  <PendingReportsPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/incidents"
+            element={
+              <RoleGuard>
+                <AppShell>
+                  <IncidentsPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/alerts"
+            element={
+              <RoleGuard allowedRoles={['MODERATOR', 'ADMIN']}>
+                <AppShell>
+                  <AlertsPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/notifications"
+            element={
+              <RoleGuard>
+                <AppShell>
+                  <NotificationsPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/driver"
+            element={
+              <RoleGuard>
+                <AppShell>
+                  <DriverPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/admin/users"
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <AppShell>
+                  <UserManagementPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/admin/rules"
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <AppShell>
+                  <RuleConfigPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/admin/api-keys"
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <AppShell>
+                  <ApiKeysPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/admin/audit"
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <AppShell>
+                  <AuditLogPage />
+                </AppShell>
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/admin/demo"
+            element={
+              <RoleGuard allowedRoles={['ADMIN']}>
+                <AppShell>
+                  <DemoToolsPage />
                 </AppShell>
               </RoleGuard>
             }

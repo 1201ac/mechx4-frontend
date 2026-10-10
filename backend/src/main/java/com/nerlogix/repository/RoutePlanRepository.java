@@ -8,5 +8,6 @@ import java.util.Optional;
 
 public interface RoutePlanRepository extends JpaRepository<RoutePlan, Long> {
     List<RoutePlan> findByShipmentId(Long shipmentId);
-    Optional<RoutePlan> findByShipmentIdAndStatus(Long shipmentId, RoutePlanStatus status);
+    List<RoutePlan> findByShipmentIdAndStatus(Long shipmentId, RoutePlanStatus status);
+    Optional<RoutePlan> findFirstByShipmentIdAndStatusOrderByIdDesc(Long shipmentId, RoutePlanStatus status);
 }

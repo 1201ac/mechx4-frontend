@@ -46,6 +46,11 @@ public class SseService {
         }
     }
 
+    public void sendToUser(Long userId, String eventName, Object data) {
+        // Broadcast for now so connected user sessions receive realtime events
+        broadcast(eventName, data);
+    }
+
     @Scheduled(fixedRate = 20000)
     public void sendHeartbeat() {
         for (SseEmitter emitter : emitters) {

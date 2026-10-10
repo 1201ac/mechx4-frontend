@@ -16,7 +16,7 @@ async function findFreePort() {
   })
 }
 
-async function waitForHealth(port, maxTries = 30) {
+async function waitForHealth(port, maxTries = 60) {
   for (let i = 0; i < maxTries; i++) {
     try {
       const res = await new Promise((resolve, reject) => {

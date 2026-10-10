@@ -12,7 +12,6 @@ test.describe('Phase 5 Weather & Rule Engine', () => {
     await page.fill('input[type="email"]', 'admin@nerlogix.com');
     await page.fill('input[type="password"]', 'Demo@1234');
     await page.click('button[type="submit"]');
-
     await expect(page).toHaveURL(/.*dashboard/);
 
     // Navigate to Weather page using sidebar link
