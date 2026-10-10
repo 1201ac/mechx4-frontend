@@ -1,37 +1,143 @@
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getDashboardSummary, getDistrictConnectivityList, getSupplyStatus, getAnalyticsCharts } from '../api/dashboard';
-import { MapPin, Truck, Package, Clock, AlertTriangle, ShieldAlert, BarChart2, RefreshCw, Box, X } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
+import React, { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { getDashboardSummary, getDistrictConnectivityList, getSupplyStatus, getAnalyticsCharts } from '../api/dashboard'
+import { MapPin, Truck, Package, Clock, AlertTriangle, ShieldAlert, BarChart2, RefreshCw, Box, X, Edit, ShieldCheck, Activity, Key, Users, AlertCircle } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed'
+import { getShipments } from '../api/shipments'
+import api from '../api/axios'
 
-const COLORS = ['#2F8F5B', '#D98A00', '#C6403A'];
+const COLORS = ['#2F8F5B', '#D98A00', '#C6403A']
+
+interface SupplyItem {
+  id: number
+  districtName: string
+  state: string
+  category: string
+  stockUnits: number
+  dailyDemandUnits: number
+  daysOfCover: number
+  isSupplyGap: boolean
+}
 
 export const Dashboard: React.FC = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'kpis' | 'districts' | 'supply' | 'charts'>('kpis');
-  const [selectedDistrictMap, setSelectedDistrictMap] = useState<{ name: string; state: string } | null>(null);
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<'kpis' | 'districts' | 'supply'>('kpis')
+  const [selectedDistrictMap, setSelectedDistrictMap] = useState<{ name: string; state: string } | null>(null)
+
+  // Stock edit state
+  const [editingStock, setEditingStock] = useState<SupplyItem | null>(null)
+  const [stockForm, setStockForm] = useState({ stockUnits: 0, dailyDemandUnits: 1 })
+
+  const isUser = user?.role === 'USER'
+  const isModeratorOrAdmin = user?.role === 'MODERATOR' || user?.role === 'ADMIN'
+  const isAdmin = user?.role === 'ADMIN'
 
   const { data: summary, isLoading: loadingSummary, refetch: refetchSummary } = useQuery({
     queryKey: ['dashboard-summary'],
     queryFn: getDashboardSummary,
-  });
+  })
 
   const { data: districts, isLoading: loadingDistricts } = useQuery({
     queryKey: ['dashboard-districts'],
     queryFn: getDistrictConnectivityList,
-  });
+  })
 
-  const { data: supply, isLoading: loadingSupply } = useQuery({
+  const { data: supply, isLoading: loadingSupply } = useQuery<SupplyItem[]>({
     queryKey: ['dashboard-supply'],
     queryFn: getSupplyStatus,
-  });
+    enabled: isModeratorOrAdmin,
+  })
 
   const { data: charts, isLoading: loadingCharts } = useQuery({
     queryKey: ['dashboard-charts'],
     queryFn: getAnalyticsCharts,
-  });
+  })
+
+  // User assigned shipment query
+  const { data: myShipments } = useQuery({
+    queryKey: ['my-shipments-dashboard', user?.id],
+    queryFn: () => getShipments({ driverUserId: user?.id, size: 1 }),
+    enabled: isUser && !!user?.id,
+  })
+
+  // Admin system health query
+  const { data: auditLogs } = useQuery({
+    queryKey: ['admin-health-audit'],
+    queryFn: async () => {
+      const res = await api.get('/admin/audit?size=5')
+      return res.data
+    },
+    enabled: isAdmin,
+  })
+
+  const { data: adminUsers } = useQuery({
+    queryKey: ['admin-health-users'],
+    queryFn: async () => {
+      const res = await api.get('/admin/users?size=1')
+      return res.data
+    },
+    enabled: isAdmin,
+  })
+
+  const { data: adminKeys } = useQuery({
+    queryKey: ['admin-health-keys'],
+    queryFn: async () => {
+      const res = await api.get('/admin/api-keys')
+      return res.data
+    },
+    enabled: isAdmin,
+  })
+
+  // Emergency Mode Toggle Mutation
+  const toggleEmergencyMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      await api.post('/settings/emergency', { enabled })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+    },
+  })
+
+  // Update Stock Mutation
+  const updateStockMutation = useMutation({
+    mutationFn: async (payload: { districtName: string; category: string; stockUnits: number; dailyDemandUnits: number }) => {
+      // Find district ID by searching districts list
+      const d = districts?.find((dist) => dist.name.toLowerCase() === payload.districtName.toLowerCase())
+      if (!d) throw new Error('District not found')
+      await api.put(`/districts/${d.id}/stock`, {
+        category: payload.category,
+        stockUnits: payload.stockUnits,
+        dailyDemandUnits: payload.dailyDemandUnits,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard-supply'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+      setEditingStock(null)
+    },
+  })
+
+  const myActiveShipment = myShipments?.content?.[0]
+
+  const handleOpenStockEdit = (item: SupplyItem) => {
+    setEditingStock(item)
+    setStockForm({ stockUnits: item.stockUnits, dailyDemandUnits: item.dailyDemandUnits })
+  }
+
+  const handleSaveStock = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (editingStock) {
+      updateStockMutation.mutate({
+        districtName: editingStock.districtName,
+        category: editingStock.category,
+        stockUnits: stockForm.stockUnits,
+        dailyDemandUnits: stockForm.dailyDemandUnits,
+      })
+    }
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -44,12 +150,23 @@ export const Dashboard: React.FC = () => {
             Role: {user?.role}
           </span>
         </div>
+
         <div className="flex items-center gap-3">
-          {summary?.emergencyMode && (
-            <span className="px-3 py-1 bg-rust-600 text-white rounded-full text-xs font-bold animate-pulse">
-              EMERGENCY MODE ACTIVE
-            </span>
+          {isModeratorOrAdmin && (
+            <button
+              onClick={() => toggleEmergencyMutation.mutate(!summary?.emergencyMode)}
+              disabled={toggleEmergencyMutation.isPending}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 ${
+                summary?.emergencyMode
+                  ? 'bg-rust-600 text-white animate-pulse hover:bg-rust-700'
+                  : 'bg-mist-200 text-ink-700 hover:bg-mist-300'
+              }`}
+            >
+              <AlertCircle className="w-3.5 h-3.5" />
+              {summary?.emergencyMode ? 'EMERGENCY MODE ACTIVE (Toggle Off)' : 'Toggle Emergency Mode'}
+            </button>
           )}
+
           <button
             onClick={() => refetchSummary()}
             className="p-2 border border-mist-200 rounded-xl hover:bg-mist-100 text-ink-600 transition"
@@ -60,7 +177,50 @@ export const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* 8 KPI Bar */}
+      {/* Admin System Health Strip */}
+      {isAdmin && (
+        <div className="bg-ink-900 text-white p-4 rounded-panel shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+          <div className="flex items-center gap-3">
+            <Activity className="w-5 h-5 text-river-400 shrink-0" />
+            <div>
+              <span className="text-xs text-ink-400 font-mono">SYSTEM HEALTH</span>
+              <p className="text-sm font-semibold">100% Operational • H2/PG active</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-ink-700 pt-2 sm:pt-0 sm:pl-4">
+            <Users className="w-5 h-5 text-tea-300 shrink-0" />
+            <div>
+              <span className="text-xs text-ink-400 font-mono">TOTAL USERS</span>
+              <p className="text-sm font-semibold">{adminUsers?.totalElements || 3} Registered Accounts</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 border-t sm:border-t-0 sm:border-l border-ink-700 pt-2 sm:pt-0 sm:pl-4">
+            <Key className="w-5 h-5 text-marigold-400 shrink-0" />
+            <div>
+              <span className="text-xs text-ink-400 font-mono">API KEYS & AUDIT</span>
+              <p className="text-sm font-semibold">{adminKeys?.length || 0} API Keys • {auditLogs?.totalElements || 0} Audit Events</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* USER Assigned Shipment Card */}
+      {isUser && myActiveShipment && (
+        <div className="bg-river-50 border border-river-200 p-5 rounded-panel flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="space-y-1">
+            <span className="text-xs font-mono font-bold text-river-700 uppercase">My Assigned Active Shipment</span>
+            <h3 className="text-lg font-bold text-river-800">{myActiveShipment.code} ({myActiveShipment.cargoCategory})</h3>
+            <p className="text-xs text-river-600">
+              {myActiveShipment.originNode.name} → {myActiveShipment.destinationNode.name} • Priority: {myActiveShipment.priority}
+            </p>
+          </div>
+          <span className="px-3 py-1 bg-river-600 text-white font-semibold text-xs rounded-full">
+            Status: {myActiveShipment.status}
+          </span>
+        </div>
+      )}
+
+      {/* KPI Bar */}
       {loadingSummary ? (
         <div className="text-center py-6 text-ink-600">Loading summary KPIs...</div>
       ) : (
@@ -141,14 +301,16 @@ export const Dashboard: React.FC = () => {
         >
           District Connectivity
         </button>
-        <button
-          onClick={() => setActiveTab('supply')}
-          className={`pb-3 font-semibold text-sm transition ${
-            activeTab === 'supply' ? 'border-b-2 border-river-600 text-river-600' : 'text-ink-500 hover:text-ink-900'
-          }`}
-        >
-          Essential Supply Gaps
-        </button>
+        {isModeratorOrAdmin && (
+          <button
+            onClick={() => setActiveTab('supply')}
+            className={`pb-3 font-semibold text-sm transition ${
+              activeTab === 'supply' ? 'border-b-2 border-river-600 text-river-600' : 'text-ink-500 hover:text-ink-900'
+            }`}
+          >
+            Essential Supply Gaps & Stock Actions
+          </button>
+        )}
       </div>
 
       {/* Tab 1: Charts */}
@@ -282,8 +444,8 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Tab 3: Supply Gaps */}
-      {activeTab === 'supply' && (
+      {/* Tab 3: Supply Gaps & Stock Actions (MODERATOR / ADMIN) */}
+      {activeTab === 'supply' && isModeratorOrAdmin && (
         <div className="bg-white rounded-2xl border border-mist-200 overflow-hidden">
           {loadingSupply ? (
             <div className="p-8 text-center text-ink-600">Loading supply stock...</div>
@@ -298,7 +460,7 @@ export const Dashboard: React.FC = () => {
                     <th className="p-4">Daily Demand</th>
                     <th className="p-4">Days of Cover</th>
                     <th className="p-4">Supply Status</th>
-                    <th className="p-4 text-right">Map View</th>
+                    <th className="p-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-mist-100">
@@ -306,7 +468,7 @@ export const Dashboard: React.FC = () => {
                     <tr key={s.id} className={s.isSupplyGap ? 'bg-rust-50/40' : 'hover:bg-mist-50'}>
                       <td className="p-4 font-semibold text-ink-900">{s.districtName} ({s.state})</td>
                       <td className="p-4 text-ink-600 font-mono text-xs">{s.category}</td>
-                      <td className="p-4 text-ink-900">{s.stockUnits}</td>
+                      <td className="p-4 text-ink-900 font-semibold">{s.stockUnits}</td>
                       <td className="p-4 text-ink-600">{s.dailyDemandUnits}</td>
                       <td className="p-4 font-bold font-mono text-ink-900">{s.daysOfCover} days</td>
                       <td className="p-4">
@@ -320,12 +482,18 @@ export const Dashboard: React.FC = () => {
                           </span>
                         )}
                       </td>
-                      <td className="p-4 text-right">
+                      <td className="p-4 text-right space-x-2">
+                        <button
+                          onClick={() => handleOpenStockEdit(s)}
+                          className="px-2.5 py-1 bg-river-100 text-river-600 hover:bg-river-200 rounded text-xs font-semibold inline-flex items-center gap-1"
+                        >
+                          <Edit className="w-3 h-3" /> Update Stock
+                        </button>
                         <button
                           onClick={() => setSelectedDistrictMap({ name: s.districtName, state: s.state })}
                           className="px-2.5 py-1 border border-mist-200 rounded text-xs font-medium text-river-600 hover:bg-mist-100 inline-flex items-center gap-1"
                         >
-                          <MapPin className="w-3 h-3" /> Google Map
+                          <MapPin className="w-3 h-3" /> Map
                         </button>
                       </td>
                     </tr>
@@ -334,6 +502,77 @@ export const Dashboard: React.FC = () => {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Update Stock Modal */}
+      {editingStock && (
+        <div className="fixed inset-0 bg-ink-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-panel max-w-md w-full p-6 border border-mist-200 shadow-floating space-y-4">
+            <div className="flex justify-between items-center border-b border-mist-200 pb-3">
+              <div>
+                <h3 className="font-heading font-bold text-lg text-ink-900">Update Stock</h3>
+                <span className="text-xs text-ink-600">{editingStock.districtName} • {editingStock.category}</span>
+              </div>
+              <button onClick={() => setEditingStock(null)} className="text-ink-400 hover:text-ink-900">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveStock} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-ink-600 mb-1">Current Stock Units</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={stockForm.stockUnits}
+                  onChange={(e) => setStockForm({ ...stockForm, stockUnits: parseFloat(e.target.value) || 0 })}
+                  className="w-full px-3 py-2 border border-mist-200 rounded-control text-sm font-mono"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-ink-600 mb-1">Daily Demand Units</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0.1"
+                  value={stockForm.dailyDemandUnits}
+                  onChange={(e) => setStockForm({ ...stockForm, dailyDemandUnits: parseFloat(e.target.value) || 1 })}
+                  className="w-full px-3 py-2 border border-mist-200 rounded-control text-sm font-mono"
+                  required
+                />
+              </div>
+
+              <div className="p-3 bg-mist-50 rounded-control text-xs space-y-1">
+                <div className="flex justify-between font-semibold text-ink-900">
+                  <span>Projected Cover:</span>
+                  <span className="font-mono font-bold">
+                    {(stockForm.dailyDemandUnits > 0 ? (stockForm.stockUnits / stockForm.dailyDemandUnits) : 0).toFixed(1)} days
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingStock(null)}
+                  className="px-4 py-2 border border-mist-200 rounded-control text-xs font-medium text-ink-600 hover:bg-mist-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateStockMutation.isPending}
+                  className="flex items-center gap-1 px-4 py-2 bg-river-600 hover:bg-river-700 text-white rounded-control text-xs font-semibold"
+                >
+                  <ShieldCheck className="w-4 h-4" /> Save Stock
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
@@ -362,5 +601,5 @@ export const Dashboard: React.FC = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}

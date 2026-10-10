@@ -120,4 +120,30 @@ public class AdminController {
         Long segmentId = body.get("segmentId");
         return ResponseEntity.ok(adminService.snapRoadGeometry(segmentId));
     }
+
+    @GetMapping("/districts")
+    public ResponseEntity<List<com.nerlogix.entity.District>> getAdminDistricts() {
+        return ResponseEntity.ok(adminService.getAllDistricts());
+    }
+
+    @PutMapping("/districts/{id}")
+    public ResponseEntity<com.nerlogix.entity.District> updateAdminDistrict(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long id,
+            @Valid @RequestBody com.nerlogix.dto.UpdateDistrictRequest request) {
+        return ResponseEntity.ok(adminService.updateDistrict(id, request, currentUser));
+    }
+
+    @GetMapping("/roads")
+    public ResponseEntity<List<com.nerlogix.entity.RoadSegment>> getAdminRoads() {
+        return ResponseEntity.ok(adminService.getAllRoads());
+    }
+
+    @PutMapping("/roads/{id}")
+    public ResponseEntity<com.nerlogix.entity.RoadSegment> updateAdminRoadSegment(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long id,
+            @Valid @RequestBody com.nerlogix.dto.UpdateRoadSegmentRequest request) {
+        return ResponseEntity.ok(adminService.updateRoadSegment(id, request, currentUser));
+    }
 }

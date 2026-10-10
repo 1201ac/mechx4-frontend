@@ -23,6 +23,7 @@ const DriverPage = React.lazy(() => import('./pages/DriverPage').then(m => ({ de
 const SettingsPage = React.lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 
 const UserManagementPage = React.lazy(() => import('./pages/admin/UserManagementPage').then(m => ({ default: m.UserManagementPage })))
+const NetworkDataPage = React.lazy(() => import('./pages/admin/NetworkDataPage').then(m => ({ default: m.NetworkDataPage })))
 const RuleConfigPage = React.lazy(() => import('./pages/admin/RuleConfigPage').then(m => ({ default: m.RuleConfigPage })))
 const ApiKeysPage = React.lazy(() => import('./pages/admin/ApiKeysPage').then(m => ({ default: m.ApiKeysPage })))
 const AuditLogPage = React.lazy(() => import('./pages/admin/AuditLogPage').then(m => ({ default: m.AuditLogPage })))
@@ -31,7 +32,7 @@ const DemoToolsPage = React.lazy(() => import('./pages/admin/DemoToolsPage').the
 function PageLoading() {
   return (
     <div className="flex items-center justify-center min-h-[400px]">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-700" />
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-river-600" />
     </div>
   )
 }
@@ -43,6 +44,7 @@ export default function App() {
         <Suspense fallback={<PageLoading />}>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/about" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
@@ -71,7 +73,7 @@ export default function App() {
             <Route
               path="/roads"
               element={
-                <RoleGuard>
+                <RoleGuard allowedRoles={['MODERATOR', 'ADMIN']}>
                   <AppShell>
                     <RoadsPage />
                   </AppShell>
@@ -104,7 +106,7 @@ export default function App() {
             <Route
               path="/vehicles"
               element={
-                <RoleGuard>
+                <RoleGuard allowedRoles={['MODERATOR', 'ADMIN']}>
                   <AppShell>
                     <VehiclesPage />
                   </AppShell>
@@ -137,7 +139,7 @@ export default function App() {
             <Route
               path="/pending-reports"
               element={
-                <RoleGuard>
+                <RoleGuard allowedRoles={['MODERATOR', 'ADMIN']}>
                   <AppShell>
                     <PendingReportsPage />
                   </AppShell>
@@ -148,7 +150,7 @@ export default function App() {
             <Route
               path="/incidents"
               element={
-                <RoleGuard>
+                <RoleGuard allowedRoles={['MODERATOR', 'ADMIN']}>
                   <AppShell>
                     <IncidentsPage />
                   </AppShell>
@@ -159,7 +161,7 @@ export default function App() {
             <Route
               path="/alerts"
               element={
-                <RoleGuard allowedRoles={['MODERATOR', 'ADMIN']}>
+                <RoleGuard>
                   <AppShell>
                     <AlertsPage />
                   </AppShell>
@@ -181,7 +183,7 @@ export default function App() {
             <Route
               path="/driver"
               element={
-                <RoleGuard>
+                <RoleGuard allowedRoles={['USER']}>
                   <AppShell>
                     <DriverPage />
                   </AppShell>
@@ -206,6 +208,17 @@ export default function App() {
                 <RoleGuard allowedRoles={['ADMIN']}>
                   <AppShell>
                     <UserManagementPage />
+                  </AppShell>
+                </RoleGuard>
+              }
+            />
+
+            <Route
+              path="/admin/network"
+              element={
+                <RoleGuard allowedRoles={['ADMIN']}>
+                  <AppShell>
+                    <NetworkDataPage />
                   </AppShell>
                 </RoleGuard>
               }

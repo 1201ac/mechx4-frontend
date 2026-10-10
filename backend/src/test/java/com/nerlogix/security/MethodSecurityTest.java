@@ -158,4 +158,36 @@ public class MethodSecurityTest {
                         .content("{\"enabled\":true}"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    @WithMockUser(username = "user@nerlogix.com", roles = {"USER"})
+    void updateDistrictStock_UserRole_Forbidden() throws Exception {
+        mockMvc.perform(put("/api/districts/1/stock")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"category\":\"FOOD\",\"stockUnits\":500.0,\"dailyDemandUnits\":50.0}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "moderator@nerlogix.com", roles = {"MODERATOR"})
+    void updateDistrictStock_ModeratorRole_Success() throws Exception {
+        mockMvc.perform(put("/api/districts/1/stock")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"category\":\"FOOD\",\"stockUnits\":500.0,\"dailyDemandUnits\":50.0}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @WithMockUser(username = "moderator@nerlogix.com", roles = {"MODERATOR"})
+    void adminDistricts_ModeratorRole_Forbidden() throws Exception {
+        mockMvc.perform(get("/api/admin/districts"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "admin@nerlogix.com", roles = {"ADMIN"})
+    void adminDistricts_AdminRole_Success() throws Exception {
+        mockMvc.perform(get("/api/admin/districts"))
+                .andExpect(status().isOk());
+    }
 }

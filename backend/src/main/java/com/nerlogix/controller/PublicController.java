@@ -70,4 +70,14 @@ public class PublicController {
 
         return ResponseEntity.ok(new PublicOverviewResponse(districtsCount, segmentsCount, movingCount, disruptionsCount));
     }
+
+    @GetMapping("/config")
+    public ResponseEntity<java.util.Map<String, String>> getConfig() {
+        String apiKey = System.getenv().getOrDefault("VITE_GOOGLE_MAPS_API_KEY", System.getenv().getOrDefault("GOOGLE_MAPS_API_KEY", ""));
+        String mapId = System.getenv().getOrDefault("VITE_GOOGLE_MAPS_MAP_ID", System.getenv().getOrDefault("GOOGLE_MAPS_MAP_ID", ""));
+        return ResponseEntity.ok(java.util.Map.of(
+                "googleMapsApiKey", apiKey,
+                "googleMapsMapId", mapId
+        ));
+    }
 }

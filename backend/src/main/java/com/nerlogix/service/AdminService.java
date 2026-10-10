@@ -36,6 +36,8 @@ public class AdminService {
     private final RiskEngine riskEngine;
     private final RoadSegmentRepository roadSegmentRepository;
 
+    private final DistrictRepository districtRepository;
+
     public AdminService(
             UserRepository userRepository,
             AuditLogRepository auditLogRepository,
@@ -47,7 +49,8 @@ public class AdminService {
             SeedService seedService,
             AuditLogService auditLogService,
             RiskEngine riskEngine,
-            RoadSegmentRepository roadSegmentRepository) {
+            RoadSegmentRepository roadSegmentRepository,
+            DistrictRepository districtRepository) {
         this.userRepository = userRepository;
         this.auditLogRepository = auditLogRepository;
         this.ruleConfigRepository = ruleConfigRepository;
@@ -59,6 +62,7 @@ public class AdminService {
         this.auditLogService = auditLogService;
         this.riskEngine = riskEngine;
         this.roadSegmentRepository = roadSegmentRepository;
+        this.districtRepository = districtRepository;
     }
 
     public Page<UserDto> getUsers(Pageable pageable) {
@@ -231,6 +235,47 @@ public class AdminService {
             state,
             seg.getUpdatedAt()
         );
+    }
+
+    public List<District> getAllDistricts() {
+        return districtRepository.findAll();
+    }
+
+    @Transactional
+    public District updateDistrict(Long id, com.nerlogix.dto.UpdateDistrictRequest req, User currentUser) {
+        District d = districtRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("District not found: " + id));
+        d.setName(req.name());
+        d.setState(req.state());
+        d.setLat(req.lat());
+        d.setLng(req.lng());
+        d.setPopulationBand(req.populationBand());
+        d.setUpdatedAt(LocalDateTime.now());
+        d = districtRepository.save(d);
+        auditLogService.recordAudit(currentUser, "UPDATE_DISTRICT", "DISTRICT", d.getId(), "Updated district fields for " + d.getName(), "127.0.0.1");
+        return d;
+    }
+
+    public List<RoadSegment> getAllRoads() {
+        return roadSegmentRepository.findAll();
+    }
+
+    @Transactional
+    public RoadSegment updateRoadSegment(Long id, com.nerlogix.dto.UpdateRoadSegmentRequest req, User currentUser) {
+        RoadSegment seg = roadSegmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Road segment not found: " + id));
+        seg.setName(req.name());
+        seg.setAssetType(req.assetType());
+        seg.setBaseSpeedKmph(req.baseSpeedKmph());
+        seg.setTerrainClass(req.terrainClass());
+        seg.setLandslideProne(req.landslideProne());
+        seg.setFloodProne(req.floodProne());
+        seg.setUpdatedAt(LocalDateTime.now());
+        seg = roadSegmentRepository.save(seg);
+
+        riskEngine.recomputeAll();
+        auditLogService.recordAudit(currentUser, "UPDATE_ROAD_SEGMENT", "ROAD_SEGMENT", seg.getId(), "Updated road segment fields for " + seg.getName(), "127.0.0.1");
+        return seg;
     }
 
     private String hashKey(String rawKey) {
