@@ -10,3 +10,4 @@ uploads/
 .env.local
 playwright-report/
 test-results/
+backend/src/main/resources/static/

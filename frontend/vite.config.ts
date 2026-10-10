@@ -46,6 +46,17 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          leaflet: ['leaflet', 'react-leaflet'],
+          recharts: ['recharts'],
+          vendor: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query', 'axios', 'lucide-react', 'i18next', 'react-i18next']
+        }
+      }
+    }
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
