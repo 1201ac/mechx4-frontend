@@ -9,6 +9,9 @@
 ## 1. Overview & Problem Addressed
 The North Eastern Region (NER) of India faces severe logistics and accessibility challenges from landslides, flash floods, heavy monsoon rainfall, and road damage. **NER-Logix** is a conventional, rule-based operational platform that integrates GPS vehicle tracking, GIS mapping, manual field reports, and weather logging into a central database. It provides authorities and logistics operators real-time operational visibility, rule-based risk alerts, incident history logs, and dynamic safer route recommendations.
 
+> [!NOTE]
+> The Route Planner page is Google-Maps-only by design. It overlays NER-Logix risk-calculated routes onto Google Maps JS with step-by-step driving navigation directions and phone navigation links.
+
 ---
 
 ## 2. Seeded Operational Accounts
