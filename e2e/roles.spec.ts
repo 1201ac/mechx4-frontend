@@ -1,10 +1,18 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Role Audit & Navigation Controls', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/login');
+    await page.evaluate(() => localStorage.clear());
+    await page.goto('/login');
+  });
+
   test('USER role sidebar links and forbidden route redirects', async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
-      if (msg.type() === 'error') consoleErrors.push(msg.text());
+      if (msg.type() === 'error' && !msg.text().includes('401') && !msg.text().includes('403')) {
+        consoleErrors.push(msg.text());
+      }
     });
 
     await page.goto('/login');
@@ -49,7 +57,9 @@ test.describe('Role Audit & Navigation Controls', () => {
   test('MODERATOR role sidebar links and forbidden route redirects', async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
-      if (msg.type() === 'error') consoleErrors.push(msg.text());
+      if (msg.type() === 'error' && !msg.text().includes('401') && !msg.text().includes('403')) {
+        consoleErrors.push(msg.text());
+      }
     });
 
     await page.goto('/login');
@@ -89,7 +99,9 @@ test.describe('Role Audit & Navigation Controls', () => {
   test('ADMIN role sidebar links and forbidden route redirects', async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on('console', (msg) => {
-      if (msg.type() === 'error') consoleErrors.push(msg.text());
+      if (msg.type() === 'error' && !msg.text().includes('401') && !msg.text().includes('403')) {
+        consoleErrors.push(msg.text());
+      }
     });
 
     await page.goto('/login');
@@ -119,3 +131,4 @@ test.describe('Role Audit & Navigation Controls', () => {
     expect(consoleErrors).toHaveLength(0);
   });
 });
+

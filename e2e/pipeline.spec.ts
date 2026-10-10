@@ -7,7 +7,7 @@ test.describe('Full 6-step Operational Pipeline', () => {
     await page.fill('input[type="email"]', 'user@nerlogix.com');
     await page.fill('input[type="password"]', 'Demo@1234');
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/.*dashboard/);
+    await page.waitForURL(/.*(map|driver)/);
 
     // Go to Field Report page
     await page.goto('/field-report');
@@ -21,11 +21,12 @@ test.describe('Full 6-step Operational Pipeline', () => {
     await expect(page.locator('text=Report Queued')).toBeVisible({ timeout: 5000 });
 
     // Step 2 & 3: Login as MODERATOR to review & verify report
+    await page.evaluate(() => localStorage.clear());
     await page.goto('/login');
     await page.fill('input[type="email"]', 'moderator@nerlogix.com');
     await page.fill('input[type="password"]', 'Demo@1234');
     await page.click('button[type="submit"]');
-    await expect(page).toHaveURL(/.*dashboard/);
+    await page.waitForURL(/.*dashboard/);
 
     // Check Incidents Log
     await page.goto('/incidents');
@@ -55,10 +56,12 @@ test.describe('Full 6-step Operational Pipeline', () => {
     await expect(page.locator('h1')).toContainText('Instant Alert Notifications');
 
     // Step 6: Route Action - Driver Mode view & accept route
+    await page.evaluate(() => localStorage.clear());
     await page.goto('/login');
     await page.fill('input[type="email"]', 'user@nerlogix.com');
     await page.fill('input[type="password"]', 'Demo@1234');
     await page.click('button[type="submit"]');
+    await page.waitForURL((url) => !url.pathname.includes('/login'));
 
     await page.goto('/driver');
     await expect(page.locator('text=Driver Navigation Mode')).toBeVisible();

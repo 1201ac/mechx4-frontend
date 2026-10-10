@@ -8,7 +8,7 @@ test.describe('Driver Mode & Reroute Flow', () => {
     await page.fill('input[type="password"]', 'Demo@1234');
     await page.click('button[type="submit"]');
 
-    await expect(page).toHaveURL('/dashboard');
+    await page.waitForURL(/.*(map|driver)/);
 
     // Navigate to driver mode
     await page.goto('/driver');

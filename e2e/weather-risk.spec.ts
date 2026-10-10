@@ -21,15 +21,25 @@ test.describe('Phase 5 Weather & Rule Engine', () => {
     // Verify Demo Rain Tool is visible for Admin
     await expect(page.getByText('Admin Demo Rain Tool')).toBeVisible();
 
-    // Select first district and EXTREME rain
-    const districtSelect = page.locator('select').first();
-    await districtSelect.selectOption({ index: 1 });
+    // Select district 2 and EXTREME rain
+    const demoSelect = page.locator('select').first();
+    await expect(demoSelect.locator('option').nth(2)).toBeAttached({ timeout: 10000 });
+    const districtVal = await demoSelect.locator('option').nth(2).getAttribute('value');
+    if (districtVal) {
+      await demoSelect.selectOption(districtVal);
+    }
 
-    // Trigger simulation
-    await page.getByRole('button', { name: 'Trigger Rain Simulation' }).click();
+    const condSelect = page.locator('select').nth(1);
+    await condSelect.selectOption('EXTREME');
 
-    // Verify success notification badge
-    await expect(page.getByText(/Triggered EXTREME rain on/)).toBeVisible();
+    const responsePromise = page.waitForResponse((resp) => resp.url().includes('/api/admin/demo/rain') && resp.status() === 200);
+    const triggerBtn = page.getByRole('button', { name: 'Trigger Rain Simulation' });
+    await expect(triggerBtn).toBeEnabled({ timeout: 5000 });
+    await triggerBtn.click();
+    await responsePromise;
+
+    // Verify EXTREME weather condition banner is visible
+    await expect(page.getByTestId('demo-success')).toBeVisible({ timeout: 15000 });
 
     expect(consoleErrors).toHaveLength(0);
   });

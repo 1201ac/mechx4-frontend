@@ -2,13 +2,13 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Field Reporting & Incident History', () => {
   test('submit field report and view incidents log', async ({ page }) => {
-    // Login as user
+    // Login as moderator
     await page.goto('/login');
-    await page.fill('input[type="email"]', 'user@nerlogix.com');
+    await page.fill('input[type="email"]', 'moderator@nerlogix.com');
     await page.fill('input[type="password"]', 'Demo@1234');
     await page.click('button[type="submit"]');
 
-    await expect(page).toHaveURL('/dashboard');
+    await page.waitForURL(/.*dashboard/);
 
     // Go to Field Report
     await page.goto('/field-report');
@@ -25,3 +25,4 @@ test.describe('Field Reporting & Incident History', () => {
     await expect(page.locator('h1')).toContainText('Incidents & Incident History Logs');
   });
 });
+

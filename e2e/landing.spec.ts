@@ -1,13 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Phase 3 Landing Page', () => {
-  test('renders hero headline, count-ups from overview API, and SVG network', async ({ page }) => {
+test.describe('Phase 3 Landing / About Page', () => {
+  test('renders hero headline, count-ups from overview API, and SVG network at /about', async ({ page }) => {
     const consoleErrors: string[] = [];
     page.on('console', msg => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
     });
 
-    await page.goto('/');
+    await page.goto('/about');
 
     // Hero Headline
     await expect(page.getByText('Know which roads are open before your convoy leaves.')).toBeVisible();
@@ -29,7 +29,7 @@ test.describe('Phase 3 Landing Page', () => {
 
   test('responsive viewport check at 390px mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/');
+    await page.goto('/about');
     await expect(page.getByText('Know which roads are open before your convoy leaves.')).toBeVisible();
   });
 });
