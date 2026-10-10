@@ -1,5 +1,15 @@
 import React, { Suspense } from 'react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+    },
+  },
+})
 import { AuthProvider } from './context/AuthContext'
 import { RoleGuard } from './components/RoleGuard'
 import { AppShell } from './components/AppShell'
@@ -39,11 +49,12 @@ function PageLoading() {
 
 export default function App() {
   return (
-    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <Suspense fallback={<PageLoading />}>
           <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<Login />} />
             <Route path="/about" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
@@ -273,5 +284,6 @@ export default function App() {
         </Suspense>
       </AuthProvider>
     </BrowserRouter>
+  </QueryClientProvider>
   )
 }

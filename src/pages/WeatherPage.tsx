@@ -50,7 +50,10 @@ export const WeatherPage: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ['mapSegments'] });
       queryClient.invalidateQueries({ queryKey: ['roads'] });
       setDemoSuccess(`Triggered ${data.condition} rain on ${data.districtName}. Segment risk scores recomputed.`);
-      setTimeout(() => setDemoSuccess(null), 5000);
+      setTimeout(() => setDemoSuccess(null), 15000);
+    },
+    onError: (err: unknown) => {
+      console.error('Demo rain simulation error:', err);
     }
   });
 
@@ -68,10 +71,17 @@ export const WeatherPage: React.FC = () => {
     });
   };
 
-  const handleDemoSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!demoDistrictId) return;
-    demoMutation.mutate({ districtId: demoDistrictId, condition: demoCondition });
+  React.useEffect(() => {
+    if (weatherList.length > 0 && !demoDistrictId) {
+      setDemoDistrictId(weatherList[0].districtId);
+    }
+  }, [weatherList, demoDistrictId]);
+
+  const handleDemoSubmit = (e?: React.FormEvent | React.MouseEvent) => {
+    if (e) e.preventDefault();
+    const targetDistrictId = demoDistrictId || (weatherList.length > 0 ? weatherList[0].districtId : null);
+    if (!targetDistrictId) return;
+    demoMutation.mutate({ districtId: targetDistrictId, condition: demoCondition });
   };
 
   const uniqueStates = Array.from(new Set(weatherList.map((w) => w.state))).filter(Boolean);
@@ -144,13 +154,13 @@ export const WeatherPage: React.FC = () => {
               <span>Admin Demo Rain Tool (Rule Engine Simulation)</span>
             </div>
             {demoSuccess && (
-              <span className="text-xs text-tea-500 font-medium flex items-center gap-1">
+              <span data-testid="demo-success" className="text-xs text-tea-500 font-medium flex items-center gap-1">
                 <CheckCircle2 className="w-4 h-4" /> {demoSuccess}
               </span>
             )}
           </div>
 
-          <form onSubmit={handleDemoSubmit} className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <select
               value={demoDistrictId || ''}
               onChange={(e) => setDemoDistrictId(Number(e.target.value))}
@@ -177,13 +187,14 @@ export const WeatherPage: React.FC = () => {
             </select>
 
             <button
-              type="submit"
+              type="button"
+              onClick={handleDemoSubmit}
               disabled={!demoDistrictId || demoMutation.isPending}
               className="px-4 py-2 bg-river-600 hover:bg-river-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
             >
               {demoMutation.isPending ? 'Simulating...' : 'Trigger Rain Simulation'}
             </button>
-          </form>
+          </div>
         </div>
       )}
 

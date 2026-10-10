@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { AuthShell } from '../components/AuthShell'
+import { User, Mail, Lock, Globe, ArrowRight } from 'lucide-react'
 
 export const Register: React.FC = () => {
   const { register } = useAuth()
@@ -20,11 +22,11 @@ export const Register: React.FC = () => {
 
     try {
       await register(email, password, name, language)
-      navigate('/dashboard')
+      navigate('/map')
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const res = (err as { response?: { data?: { message?: string } } }).response
-        setError(res?.data?.message || 'Registration failed.')
+        setError(res?.data?.message || 'Registration failed. Check details and password policy.')
       } else {
         setError('An unexpected error occurred.')
       }
@@ -34,63 +36,68 @@ export const Register: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-mist-50 flex items-center justify-center p-6">
-      <div className="bg-white border border-mist-200 rounded-panel p-8 shadow-floating max-w-md w-full">
-        <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-river-600 mb-1">NER-Logix</h1>
-          <p className="text-ink-600 text-sm">Create a new field user account</p>
+    <AuthShell titleKey="fieldUser">
+      {error && (
+        <div className="p-3 bg-rust-100 border border-rust-200 text-rust-700 text-xs rounded-control font-medium">
+          {error}
         </div>
+      )}
 
-        {error && (
-          <div className="mb-4 p-3 bg-rust-100 text-rust-600 text-xs rounded-control font-medium">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-ink-600 mb-1">Full Name</label>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1">
+          <label className="block text-xs font-semibold text-ink-600">Full Name</label>
+          <div className="relative">
+            <User className="w-4 h-4 text-ink-400 absolute left-3 top-3" />
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Full Name"
-              className="w-full px-3 py-2 border border-mist-200 rounded-control text-sm focus:outline-none focus:ring-2 focus:ring-river-600"
+              placeholder="e.g. Rahul Das"
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-mist-200 rounded-control text-sm font-medium focus:outline-none focus:ring-2 focus:ring-river-600"
             />
           </div>
+        </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-ink-600 mb-1">Email Address</label>
+        <div className="space-y-1">
+          <label className="block text-xs font-semibold text-ink-600">Email Address</label>
+          <div className="relative">
+            <Mail className="w-4 h-4 text-ink-400 absolute left-3 top-3" />
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="user@example.com"
-              className="w-full px-3 py-2 border border-mist-200 rounded-control text-sm focus:outline-none focus:ring-2 focus:ring-river-600"
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-mist-200 rounded-control text-sm font-medium focus:outline-none focus:ring-2 focus:ring-river-600"
             />
           </div>
+        </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-ink-600 mb-1">Password</label>
+        <div className="space-y-1">
+          <label className="block text-xs font-semibold text-ink-600">Password</label>
+          <div className="relative">
+            <Lock className="w-4 h-4 text-ink-400 absolute left-3 top-3" />
             <input
               type="password"
               required
-              minLength={6}
+              minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimum 6 characters"
-              className="w-full px-3 py-2 border border-mist-200 rounded-control text-sm focus:outline-none focus:ring-2 focus:ring-river-600"
+              placeholder="8+ chars with uppercase, number & symbol"
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-mist-200 rounded-control text-sm font-medium focus:outline-none focus:ring-2 focus:ring-river-600"
             />
           </div>
+        </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-ink-600 mb-1">Preferred Language</label>
+        <div className="space-y-1">
+          <label className="block text-xs font-semibold text-ink-600">Preferred System Language</label>
+          <div className="relative">
+            <Globe className="w-4 h-4 text-ink-400 absolute left-3 top-3 pointer-events-none" />
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="w-full px-3 py-2 border border-mist-200 rounded-control text-sm focus:outline-none focus:ring-2 focus:ring-river-600 bg-white"
+              className="w-full pl-9 pr-3 py-2.5 bg-white border border-mist-200 rounded-control text-sm font-medium focus:outline-none focus:ring-2 focus:ring-river-600"
             >
               <option value="en">English</option>
               <option value="hi">Hindi (हिंदी)</option>
@@ -98,22 +105,23 @@ export const Register: React.FC = () => {
               <option value="bn">Bengali (বাংলা)</option>
             </select>
           </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2.5 bg-river-600 text-white font-semibold text-sm rounded-control hover:bg-river-700 transition-colors disabled:opacity-50"
-          >
-            {isLoading ? 'Creating account...' : 'Create account'}
-          </button>
-        </form>
-
-        <div className="mt-4 text-center">
-          <Link to="/login" className="text-xs text-river-600 font-medium hover:underline">
-            Already have an account? Sign in
-          </Link>
         </div>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full py-3 bg-river-600 hover:bg-river-700 text-white font-semibold text-sm rounded-control transition-colors shadow-sm disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          <span>{isLoading ? 'Creating Account...' : 'Create Account'}</span>
+          {!isLoading && <ArrowRight className="w-4 h-4" />}
+        </button>
+      </form>
+
+      <div className="pt-4 border-t border-mist-200 text-center text-xs">
+        <Link to="/login" className="text-river-600 font-semibold hover:underline">
+          Already have an account? Sign in
+        </Link>
       </div>
-    </div>
+    </AuthShell>
   )
 }
