@@ -29,9 +29,10 @@ export const AlertsPage: React.FC = () => {
 
   const parseJsonText = (json: string): string => {
     try {
-      const parsed = JSON.parse(json);
+      const parsed = typeof json === 'string' ? JSON.parse(json) : json;
       if (typeof parsed === 'object' && parsed !== null) {
-        return parsed.en || Object.values(parsed)[0] || json;
+        const lang = user?.language || 'en';
+        return parsed[lang] || parsed.en || Object.values(parsed)[0] || String(json);
       }
       return String(parsed);
     } catch {
