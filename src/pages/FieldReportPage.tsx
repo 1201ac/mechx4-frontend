@@ -128,6 +128,7 @@ export const FieldReportPage: React.FC = () => {
         <div>
           <label className="block text-xs font-medium text-ink-600 mb-1">Incident Type</label>
           <select
+            name="type"
             value={type}
             onChange={(e) => setType(e.target.value as typeof type)}
             className="w-full px-3 py-2.5 border border-mist-200 rounded-lg text-sm bg-white font-medium text-ink-900"
