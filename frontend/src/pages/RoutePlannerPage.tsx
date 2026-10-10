@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { getMapLocations, RoadNodeDto } from '../api/map';
 import { planRoutes, RouteOptionDto } from '../api/routes';
 import { Navigation, AlertTriangle, Route as RouteIcon, ShieldAlert, ArrowRight, RefreshCw } from 'lucide-react';
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
 
 const createNodeIcon = (kind: string) => {
   const color = kind === 'HOSPITAL' ? '#C6403A' : kind === 'DEPOT' ? '#14597A' : '#4B5563';
@@ -142,6 +143,19 @@ export const RoutePlannerPage: React.FC = () => {
           </div>
         </form>
       </div>
+
+      {/* Google Maps Route Location & Directions Preview */}
+      {(originNode || destNode) && (
+        <GoogleMapEmbed
+          originLat={originNode?.lat}
+          originLng={originNode?.lng}
+          destLat={destNode?.lat}
+          destLng={destNode?.lng}
+          query={destNode ? `${destNode.name}, India` : `${originNode?.name}, India`}
+          height="240px"
+          title={`Google Maps Driving Route - ${originNode?.name || 'Origin'} to ${destNode?.name || 'Destination'}`}
+        />
+      )}
 
       {/* Error state */}
       {planMutation.isError && (

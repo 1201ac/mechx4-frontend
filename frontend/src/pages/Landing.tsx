@@ -7,27 +7,7 @@ import {
   Activity, ArrowRight, UserCheck, ShieldCheck, UserCog, CheckCircle2
 } from 'lucide-react'
 import { api } from '../api/axios'
-
-interface NetworkNode {
-  id: number
-  name: string
-  lat: number
-  lng: number
-}
-
-interface NetworkSegment {
-  id: number
-  fromNodeId: number
-  toNodeId: number
-  name: string
-  status: string
-  polyline: string
-}
-
-interface NetworkData {
-  nodes: NetworkNode[]
-  segments: NetworkSegment[]
-}
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed'
 
 interface OverviewData {
   districtsMonitored: number
@@ -37,7 +17,6 @@ interface OverviewData {
 }
 
 export const Landing: React.FC = () => {
-  const [network, setNetwork] = useState<NetworkData | null>(null)
   const [overview, setOverview] = useState<OverviewData | null>(null)
   const [activeStep, setActiveStep] = useState<number>(1)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -66,14 +45,10 @@ export const Landing: React.FC = () => {
     }
   }, [])
 
-  // Fetch public overview and network
+  // Fetch public overview
   useEffect(() => {
     api.get<OverviewData>('/public/overview')
       .then((res) => setOverview(res.data))
-      .catch(() => {})
-
-    api.get<NetworkData>('/public/network')
-      .then((res) => setNetwork(res.data))
       .catch(() => {})
   }, [])
 
@@ -85,16 +60,6 @@ export const Landing: React.FC = () => {
     })
     return () => unsubscribe()
   }, [scrollYProgress])
-
-  // Coordinate scaling for SVG canvas (min/max bounds for NER)
-  const minLat = 22.5, maxLat = 28.5, minLng = 88.0, maxLng = 96.0
-  const mapWidth = 500, mapHeight = 450
-
-  const projectPoint = (lat: number, lng: number) => {
-    const x = ((lng - minLng) / (maxLng - minLng)) * mapWidth
-    const y = mapHeight - ((lat - minLat) / (maxLat - minLat)) * mapHeight
-    return { x, y }
-  }
 
   const pipelineSteps = [
     { num: 1, title: 'Field Event / GPS Created', desc: 'Local report of a landslide or live GPS ping from convoy vehicle.' },
@@ -192,52 +157,21 @@ export const Landing: React.FC = () => {
           </div>
         </div>
 
-        {/* Hero SVG Animation (Network Map) */}
-        <div className="bg-white border border-mist-200 rounded-panel p-6 shadow-floating relative overflow-hidden" data-lenis-prevent>
-          <div className="text-xs font-semibold text-ink-400 mb-4 flex items-center justify-between">
-            <span>NER Corridor Network (Illustrative Geometry)</span>
+        {/* Home Screen Google Maps Live Regional Network */}
+        <div className="bg-white border border-mist-200 rounded-panel p-6 shadow-floating space-y-4" data-lenis-prevent>
+          <div className="text-xs font-semibold text-ink-600 flex items-center justify-between">
+            <span>NER Logistics Corridors & Accessibility Overview</span>
             <span className="inline-flex items-center gap-1.5 text-tea-500 font-medium">
               <span className="w-2 h-2 rounded-full bg-tea-500 animate-pulse" /> Live System
             </span>
           </div>
 
-          <svg viewBox={`0 0 ${mapWidth} ${mapHeight}`} className="w-full h-auto bg-mist-50 rounded">
-            {network && network.segments.map((seg) => {
-              const fromNode = network.nodes.find(n => n.id === seg.fromNodeId)
-              const toNode = network.nodes.find(n => n.id === seg.toNodeId)
-              if (!fromNode || !toNode) return null
-
-              const p1 = projectPoint(fromNode.lat, fromNode.lng)
-              const p2 = projectPoint(toNode.lat, toNode.lng)
-              const isBlocked = seg.status === 'BLOCKED'
-              const isRestricted = seg.status === 'RESTRICTED'
-
-              return (
-                <line
-                  key={seg.id}
-                  x1={p1.x}
-                  y1={p1.y}
-                  x2={p2.x}
-                  y2={p2.y}
-                  stroke={isBlocked ? '#C6403A' : isRestricted ? '#D98A00' : '#14597A'}
-                  strokeWidth={isBlocked ? 3 : 2}
-                  strokeDasharray={isRestricted ? '4 3' : 'none'}
-                />
-              )
-            })}
-
-            {network && network.nodes.map((node) => {
-              const p = projectPoint(node.lat, node.lng)
-              return (
-                <g key={node.id}>
-                  <circle cx={p.x} cy={p.y} r={4} fill="#14597A" />
-                  <text x={p.x + 6} y={p.y + 3} fontSize={8} fill="#4A5B56" fontWeight="bold">
-                    {node.name}
-                  </text>
-                </g>
-              )
-            })}
-          </svg>
+          <GoogleMapEmbed
+            query="Guwahati, Assam, India"
+            zoom={7}
+            height="360px"
+            title="North Eastern Region Essential Logistics Network (Google Maps View)"
+          />
         </div>
       </section>
 

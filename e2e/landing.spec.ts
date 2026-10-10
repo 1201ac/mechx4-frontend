@@ -20,9 +20,9 @@ test.describe('Phase 3 Landing Page', () => {
     await expect(page.getByText('Districts monitored')).toBeVisible();
     await expect(page.getByText('Segments tracked')).toBeVisible();
 
-    // SVG elements
-    const svgElement = page.locator('svg[viewBox="0 0 500 450"]');
-    await expect(svgElement).toBeVisible();
+    // Google Maps element
+    const mapElement = page.locator('iframe[title*="Google Maps"]');
+    await expect(mapElement).toBeVisible();
 
     expect(consoleErrors).toHaveLength(0);
   });

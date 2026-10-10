@@ -73,6 +73,8 @@ export const MapPage: React.FC = () => {
   const { data: vehicles = [] } = useQuery({ queryKey: ['mapVehicles'], queryFn: getMapVehicles });
   const { data: incidents = [] } = useQuery({ queryKey: ['mapIncidents'], queryFn: getMapIncidents });
   const { data: districts = [] } = useQuery({ queryKey: ['mapDistricts'], queryFn: getMapDistricts });
+  const [mapMode, setMapMode] = useState<'LEAFLET' | 'GOOGLE'>('GOOGLE');
+  const [googleMapQuery, setGoogleMapQuery] = useState<string>('Guwahati, Assam, India');
 
   const { data: selectedSegmentDetail, refetch: refetchDetail } = useQuery({
     queryKey: ['roadDetail', selectedSegmentId],
@@ -123,13 +125,78 @@ export const MapPage: React.FC = () => {
 
   return (
     <div className="relative w-full h-[calc(100vh-4rem)] overflow-hidden">
-      {/* Leaflet Map */}
-      <MapContainer
-        center={[26.1445, 91.7362]}
-        zoom={7}
-        className="w-full h-full z-0"
-        scrollWheelZoom={true}
-      >
+      {/* Top Map Engine Switcher Bar */}
+      <div className="absolute top-4 left-4 z-20 flex flex-wrap items-center gap-2 bg-white/95 backdrop-blur-md p-2 rounded-xl border border-mist-200 shadow-md">
+        <button
+          onClick={() => setMapMode('LEAFLET')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+            mapMode === 'LEAFLET'
+              ? 'bg-river-600 text-white shadow-xs'
+              : 'text-ink-600 hover:bg-mist-100'
+          }`}
+        >
+          📍 Interactive GIS Map
+        </button>
+        <button
+          onClick={() => setMapMode('GOOGLE')}
+          className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+            mapMode === 'GOOGLE'
+              ? 'bg-river-600 text-white shadow-xs'
+              : 'text-ink-600 hover:bg-mist-100'
+          }`}
+        >
+          🗺️ Google Maps Satellite & Terrain View
+        </button>
+      </div>
+
+      {mapMode === 'GOOGLE' ? (
+        <div className="w-full h-full pt-16 p-4 flex flex-col space-y-3 bg-mist-100">
+          <div className="flex flex-wrap items-center gap-2 bg-white p-3 rounded-xl border border-mist-200 shadow-sm text-xs">
+            <span className="font-bold text-ink-900">Quick Focus Region:</span>
+            {[
+              'Guwahati, Assam, India',
+              'Shillong, Meghalaya, India',
+              'Silchar, Assam, India',
+              'Imphal, Manipur, India',
+              'Agartala, Tripura, India',
+              'Dimapur, Nagaland, India',
+              'Itanagar, Arunachal Pradesh, India',
+              'Gangtok, Sikkim, India',
+            ].map((loc) => {
+              const label = loc.split(',')[0];
+              return (
+                <button
+                  key={loc}
+                  onClick={() => setGoogleMapQuery(loc)}
+                  className={`px-2.5 py-1 rounded-lg font-medium transition ${
+                    googleMapQuery === loc
+                      ? 'bg-river-600 text-white font-bold'
+                      : 'bg-mist-50 hover:bg-mist-100 text-ink-700 border border-mist-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex-1 w-full rounded-xl overflow-hidden shadow-md">
+            <GoogleMapEmbed
+              query={googleMapQuery}
+              zoom={10}
+              height="100%"
+              title={`Google Maps Satellite View - ${googleMapQuery}`}
+              className="h-full"
+            />
+          </div>
+        </div>
+      ) : (
+        /* Leaflet Map */
+        <MapContainer
+          center={[26.1445, 91.7362]}
+          zoom={7}
+          className="w-full h-full z-0"
+          scrollWheelZoom={true}
+        >
         <TileLayer
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
@@ -245,6 +312,7 @@ export const MapPage: React.FC = () => {
             </CircleMarker>
           ))}
       </MapContainer>
+      )}
 
       {/* Floating Layer Control Panel */}
       <div
@@ -374,13 +442,14 @@ export const MapPage: React.FC = () => {
               )}
             </div>
 
-            {/* Google Maps Embed Location View */}
+            {/* Google Maps Route Corridor View */}
             <GoogleMapEmbed
-              lat={(selectedSegmentDetail.fromLat + selectedSegmentDetail.toLat) / 2}
-              lng={(selectedSegmentDetail.fromLng + selectedSegmentDetail.toLng) / 2}
-              zoom={11}
-              height="160px"
-              title={`Google Maps - ${selectedSegmentDetail.name}`}
+              originLat={selectedSegmentDetail.fromLat}
+              originLng={selectedSegmentDetail.fromLng}
+              destLat={selectedSegmentDetail.toLat}
+              destLng={selectedSegmentDetail.toLng}
+              height="180px"
+              title={`Google Maps Driving Route - ${selectedSegmentDetail.name}`}
             />
 
             {/* Risk Breakdown Panel: Why is this risky? */}
