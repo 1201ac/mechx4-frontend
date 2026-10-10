@@ -20,6 +20,7 @@ const IncidentsPage = React.lazy(() => import('./pages/IncidentsPage').then(m =>
 const AlertsPage = React.lazy(() => import('./pages/AlertsPage').then(m => ({ default: m.AlertsPage })))
 const NotificationsPage = React.lazy(() => import('./pages/NotificationsPage').then(m => ({ default: m.NotificationsPage })))
 const DriverPage = React.lazy(() => import('./pages/DriverPage').then(m => ({ default: m.DriverPage })))
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })))
 
 const UserManagementPage = React.lazy(() => import('./pages/admin/UserManagementPage').then(m => ({ default: m.UserManagementPage })))
 const RuleConfigPage = React.lazy(() => import('./pages/admin/RuleConfigPage').then(m => ({ default: m.RuleConfigPage })))
@@ -183,6 +184,17 @@ export default function App() {
                 <RoleGuard>
                   <AppShell>
                     <DriverPage />
+                  </AppShell>
+                </RoleGuard>
+              }
+            />
+
+            <Route
+              path="/settings"
+              element={
+                <RoleGuard>
+                  <AppShell>
+                    <SettingsPage />
                   </AppShell>
                 </RoleGuard>
               }

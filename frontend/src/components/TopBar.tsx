@@ -2,11 +2,13 @@ import React, { useState } from 'react'
 import { Bell, LogOut, Globe } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { useRealtimeStream } from '../hooks/useRealtimeStream'
 
 export const TopBar: React.FC = () => {
   const { user, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
   const [unreadCount] = useState<number>(0)
+  const { isConnected } = useRealtimeStream()
 
   if (!user) return null
 
@@ -25,6 +27,14 @@ export const TopBar: React.FC = () => {
         <span className="text-xs font-medium text-ink-600">
           State: <span className="font-semibold text-ink-900">NER Logistics Network</span>
         </span>
+
+        {/* Live SSE Stream Indicator */}
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-mist-100 text-xs font-semibold">
+          <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-tea-500 animate-pulse' : 'bg-rust-500'}`} />
+          <span className={isConnected ? 'text-tea-600' : 'text-rust-600'}>
+            {isConnected ? 'Realtime Live' : 'Reconnecting...'}
+          </span>
+        </div>
       </div>
 
       <div className="flex items-center gap-4">

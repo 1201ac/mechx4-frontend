@@ -26,6 +26,19 @@ export const NotificationsPage: React.FC = () => {
     queryFn: () => getNotifications({ size: 50 }),
   });
 
+  const parseJsonText = (json: string): string => {
+    try {
+      const parsed = typeof json === 'string' ? JSON.parse(json) : json;
+      if (typeof parsed === 'object' && parsed !== null) {
+        const lang = user?.language || 'en';
+        return parsed[lang] || parsed.en || Object.values(parsed)[0] || String(json);
+      }
+      return String(parsed);
+    } catch {
+      return json;
+    }
+  };
+
   const markReadMutation = useMutation({
     mutationFn: markNotificationRead,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
@@ -128,10 +141,10 @@ export const NotificationsPage: React.FC = () => {
               <Bell className={`w-5 h-5 shrink-0 mt-0.5 ${n.readAt ? 'text-ink-400' : 'text-river-600'}`} />
               <div className="flex-1 space-y-1">
                 <div className="flex justify-between items-start">
-                  <h3 className="font-bold text-sm text-ink-900">{n.title}</h3>
+                  <h3 className="font-bold text-sm text-ink-900">{parseJsonText(n.title)}</h3>
                   <span className="text-xs text-ink-400 font-mono">{new Date(n.createdAt).toLocaleString()}</span>
                 </div>
-                <p className="text-xs text-ink-600">{n.message}</p>
+                <p className="text-xs text-ink-600">{parseJsonText(n.message)}</p>
               </div>
               {!n.readAt && (
                 <button

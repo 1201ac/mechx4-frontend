@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import {
   MapPin, LayoutDashboard, CloudRain, Navigation,
   AlertTriangle, ShieldAlert, Truck, Package,
-  FileText, Clock, Users, Sliders, Key, History, Wrench
+  FileText, Clock, Users, Sliders, Key, History, Wrench, Settings
 } from 'lucide-react'
 import { useAuth, Role } from '../context/AuthContext'
 
@@ -47,10 +47,11 @@ export const Sidebar: React.FC = () => {
       ],
     },
     {
-      title: 'Field',
+      title: 'Field & User',
       items: [
         { label: 'Field Report', to: '/field-report', icon: FileText },
         { label: 'Pending Queue', to: '/pending-reports', icon: Clock },
+        { label: 'Settings', to: '/settings', icon: Settings },
       ],
     },
     {

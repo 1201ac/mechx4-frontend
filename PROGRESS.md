@@ -11,6 +11,7 @@
 - WP3 completed: ApiKeyAuthenticationFilter for X-API-Key (S1), query-param token support removed from JwtAuthenticationFilter (S2), LoginRateLimiter enforcing 5 max failed attempts per 15 min per IP returning 429 (S3), refresh token family rotation & reuse detection returning 401 (S4), CORS policy, CSP header & security headers with 401 entry point (S5), password policy enforcing 8+ chars with upper/lower/digit/special (S6), deactivated user check in JwtAuthenticationFilter returning 401 (S7), 500 error sanitization and ResponseStatusException handling (S8).
 - WP4 completed: search endpoint GET /api/search?q= (M1), weather log listing GET /api/weather/logs (M2), movement & emergency dashboards GET /api/dashboard/movement & /api/dashboard/emergency (M3), emergency mode settings GET|POST /api/settings/emergency (M4), notification broadcast POST /api/notifications/broadcast (M5), audit log service & paged GET /api/admin/audit (M6), road snap geometry POST /api/admin/roads/snap-geometry (M7).
 - WP5 completed: backend public config endpoint GET /api/public/config for Google Maps API key (G1), installed @googlemaps/js-api-loader, created GoogleDirectionsMap component and googleMapsLoader utility (G2), updated RoutePlannerPage to offer native Google Maps directions with fallback and step-by-step route cards, updated CSP headers for google maps domains.
+- WP6 completed: audited role access controls (F1), connected SSE realtime stream via useRealtimeStream with live status indicator (F2), created SettingsPage (/settings) and OfflineBanner component (F3), handled multilingual JSON titles/messages in alerts & notifications (F4), integrated Lenis smooth scrolling (F5).
 
 ## Blockers
 - None.
@@ -22,9 +23,9 @@
 - [x] WP3: Security
 - [x] WP4: Missing features
 - [x] WP5: Route planning directly in Google Maps
-- [ ] WP6: Frontend per-role, realtime, offline, i18n, design
+- [x] WP6: Frontend per-role, realtime, offline, i18n, design
 - [ ] WP7: Proof: tests and audits
 - [ ] WP8: Docker, docs, final verification
 
 ## Notes
-- WP1 through WP5 complete and verified with check.mjs and verify.mjs (16/16 E2E tests passing). Starting WP6.
+- WP1 through WP6 complete and verified with check.mjs and verify.mjs (16/16 E2E tests passing). Starting WP7.
