@@ -14,6 +14,9 @@
 - WP6 completed: audited role access controls (F1), connected SSE realtime stream via useRealtimeStream with live status indicator (F2), created SettingsPage (/settings) and OfflineBanner component (F3), handled multilingual JSON titles/messages in alerts & notifications (F4), integrated Lenis smooth scrolling (F5).
 - WP7 completed: created MethodSecurityTest testing authorization matrix for USER, MODERATOR, ADMIN roles (T1), enhanced e2e/pipeline.spec.ts driving all 6 operational pipeline steps with explicit assertions (T2), audited every row of docs/FUNCTION_MATRIX.md to reflect Working status across all endpoints and UI routes (T3).
 - WP8 completed: updated Dockerfile and docker-compose.yml for production execution (D1, D2), updated README.md with complete env vars table, security notes, production docker setup, and ingest API examples (D3), ran full final verification pass with check.mjs and verify.mjs (16/16 E2E tests passing) (D4).
+- Task 1 completed: role-based sidebar menu filtering & route protection, Driver Mode empty states, stock update modal & backend API (`PUT /api/districts/{id}/stock`), Admin Network Data page (`/admin/network`), unread notification badge & SSE handler, language switcher i18n support, role-specific dashboard views, resolved 35 missing Tailwind color tokens, added `GET /api/public/config`, updated matrix in `docs/FUNCTION_MATRIX.md`, and created `e2e/roles.spec.ts`.
+- Task 2 completed: purged Leaflet/CARTO maps from `RoutePlannerPage.tsx`, updated `GoogleDirectionsMap.tsx` with risk polyline overlay, step-by-step driving directions, embed fallback for missing keys, Google Maps loader singleton fix (`googleMapsLoader.ts`), updated `e2e/planner.spec.ts` asserting 0 `.leaflet-container` elements.
+- Task 3 completed: created `AuthShell.tsx` (split-screen visual shell, dark sidebar, terrain polyline SVG, branded motto), `Login.tsx` (role selector tiles, `zod` form validation, show/hide password, splash screen animation), `Register.tsx` (role selection radio tiles, matching visual shell), updated `App.tsx` routing (`/` renders `Login`, authenticated users redirect to role home, public marketing page moved to `/about`), updated `e2e/auth.spec.ts`, updated `docs/FUNCTION_MATRIX.md`, verified 100% green on `check.mjs` and `verify.mjs` (20/20 E2E tests passing).
 
 ## Blockers
 - None.
@@ -28,6 +31,9 @@
 - [x] WP6: Frontend per-role, realtime, offline, i18n, design
 - [x] WP7: Proof: tests and audits
 - [x] WP8: Docker, docs, final verification
+- [x] Task 1: Role audit, navigation controls, stock update & admin network page
+- [x] Task 2: Google-Maps-Only Route Planner
+- [x] Task 3: Designer login experience, split-screen auth shell & role home routing
 
 ## Notes
-- All work packages WP1 through WP8 fully completed and verified with check.mjs and verify.mjs (16/16 E2E tests passing). Ready for delivery.
+- All tasks fully completed and verified with check.mjs and verify.mjs (20/20 Playwright E2E tests passing 100% green).
