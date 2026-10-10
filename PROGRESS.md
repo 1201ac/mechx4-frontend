@@ -13,6 +13,7 @@
 - WP5 completed: backend public config endpoint GET /api/public/config for Google Maps API key (G1), installed @googlemaps/js-api-loader, created GoogleDirectionsMap component and googleMapsLoader utility (G2), updated RoutePlannerPage to offer native Google Maps directions with fallback and step-by-step route cards, updated CSP headers for google maps domains.
 - WP6 completed: audited role access controls (F1), connected SSE realtime stream via useRealtimeStream with live status indicator (F2), created SettingsPage (/settings) and OfflineBanner component (F3), handled multilingual JSON titles/messages in alerts & notifications (F4), integrated Lenis smooth scrolling (F5).
 - WP7 completed: created MethodSecurityTest testing authorization matrix for USER, MODERATOR, ADMIN roles (T1), enhanced e2e/pipeline.spec.ts driving all 6 operational pipeline steps with explicit assertions (T2), audited every row of docs/FUNCTION_MATRIX.md to reflect Working status across all endpoints and UI routes (T3).
+- WP8 completed: updated Dockerfile and docker-compose.yml for production execution (D1, D2), updated README.md with complete env vars table, security notes, production docker setup, and ingest API examples (D3), ran full final verification pass with check.mjs and verify.mjs (16/16 E2E tests passing) (D4).
 
 ## Blockers
 - None.
@@ -26,7 +27,7 @@
 - [x] WP5: Route planning directly in Google Maps
 - [x] WP6: Frontend per-role, realtime, offline, i18n, design
 - [x] WP7: Proof: tests and audits
-- [ ] WP8: Docker, docs, final verification
+- [x] WP8: Docker, docs, final verification
 
 ## Notes
-- WP1 through WP7 complete and verified with check.mjs and verify.mjs (16/16 E2E tests passing). Starting WP8.
+- All work packages WP1 through WP8 fully completed and verified with check.mjs and verify.mjs (16/16 E2E tests passing). Ready for delivery.
