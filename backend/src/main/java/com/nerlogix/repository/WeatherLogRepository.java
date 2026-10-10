@@ -10,4 +10,5 @@ public interface WeatherLogRepository extends JpaRepository<WeatherLog, Long> {
     Optional<WeatherLog> findFirstByDistrictIdOrderByLoggedAtDesc(Long districtId);
     List<WeatherLog> findByDistrictIdOrderByLoggedAtDesc(Long districtId);
     List<WeatherLog> findByDistrictIdAndLoggedAtAfterOrderByLoggedAtDesc(Long districtId, LocalDateTime after);
+    org.springframework.data.domain.Page<WeatherLog> findAllByOrderByLoggedAtDesc(org.springframework.data.domain.Pageable pageable);
 }

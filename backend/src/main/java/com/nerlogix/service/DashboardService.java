@@ -1,5 +1,6 @@
 package com.nerlogix.service;
 
+import com.nerlogix.dto.*;
 import com.nerlogix.entity.*;
 import com.nerlogix.model.enums.*;
 import com.nerlogix.repository.*;
@@ -170,6 +171,67 @@ public class DashboardService {
         charts.put("cargoCategoryDistribution", cargoChartData);
 
         return charts;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getMovementStatus() {
+        List<Shipment> inTransit = shipmentRepository.findByStatusIn(List.of(ShipmentStatus.IN_TRANSIT, ShipmentStatus.DELAYED));
+        List<Vehicle> activeVehicles = vehicleRepository.findByStatus(VehicleStatus.ON_TRIP);
+
+        List<Map<String, Object>> shipmentMovements = inTransit.stream().map(s -> {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("shipmentCode", s.getCode());
+            map.put("category", s.getCargoCategory().name());
+            map.put("priority", s.getPriority().name());
+            map.put("progressPct", s.getProgressPct());
+            map.put("delayMin", s.getDelayMin());
+            map.put("vehicleRegNo", s.getVehicle() != null ? s.getVehicle().getRegNo() : null);
+            map.put("vehicleSpeedKmph", s.getVehicle() != null ? s.getVehicle().getSpeedKmph() : 0.0);
+            map.put("origin", s.getOriginNode() != null ? s.getOriginNode().getName() : null);
+            map.put("destination", s.getDestinationNode() != null ? s.getDestinationNode().getName() : null);
+            return map;
+        }).toList();
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("totalActiveShipments", inTransit.size());
+        res.put("totalActiveVehicles", activeVehicles.size());
+        res.put("shipments", shipmentMovements);
+        return res;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Object> getEmergencyDashboard() {
+        boolean emergencyMode = settingRepository.findBySettingKey("emergency_mode")
+                .map(Setting::getSettingValue)
+                .map(Boolean::parseBoolean)
+                .orElse(false);
+
+        List<ShipmentDto> emergencyShipments = shipmentRepository.findAll().stream()
+                .filter(s -> s.getPriority() == ShipmentPriority.EMERGENCY)
+                .map(ShipmentDto::fromEntity)
+                .toList();
+
+        List<AlertDto> criticalAlerts = alertRepository.findAll().stream()
+                .filter(a -> a.getStatus() != AlertStatus.RESOLVED && a.getSeverity() == AlertSeverity.CRITICAL)
+                .map(AlertDto::fromEntity)
+                .toList();
+
+        List<Map<String, Object>> hospitalDepotStatus = districtRepository.findAll().stream().map(d -> {
+            double score = calculateDistrictConnectivity(d);
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("districtName", d.getName());
+            map.put("state", d.getState());
+            map.put("connectivityScore", Math.round(score * 10.0) / 10.0);
+            map.put("accessible", score > 40.0);
+            return map;
+        }).toList();
+
+        Map<String, Object> res = new LinkedHashMap<>();
+        res.put("emergencyMode", emergencyMode);
+        res.put("emergencyShipments", emergencyShipments);
+        res.put("criticalAlerts", criticalAlerts);
+        res.put("hospitalDepotAccess", hospitalDepotStatus);
+        return res;
     }
 
     private double calculateDistrictConnectivity(District district) {

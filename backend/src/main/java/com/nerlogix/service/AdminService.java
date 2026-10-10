@@ -32,7 +32,9 @@ public class AdminService {
     private final ApiKeyRepository apiKeyRepository;
     private final PasswordEncoder passwordEncoder;
     private final SeedService seedService;
+    private final AuditLogService auditLogService;
     private final RiskEngine riskEngine;
+    private final RoadSegmentRepository roadSegmentRepository;
 
     public AdminService(
             UserRepository userRepository,
@@ -43,7 +45,9 @@ public class AdminService {
             ApiKeyRepository apiKeyRepository,
             PasswordEncoder passwordEncoder,
             SeedService seedService,
-            RiskEngine riskEngine) {
+            AuditLogService auditLogService,
+            RiskEngine riskEngine,
+            RoadSegmentRepository roadSegmentRepository) {
         this.userRepository = userRepository;
         this.auditLogRepository = auditLogRepository;
         this.ruleConfigRepository = ruleConfigRepository;
@@ -52,7 +56,9 @@ public class AdminService {
         this.apiKeyRepository = apiKeyRepository;
         this.passwordEncoder = passwordEncoder;
         this.seedService = seedService;
+        this.auditLogService = auditLogService;
         this.riskEngine = riskEngine;
+        this.roadSegmentRepository = roadSegmentRepository;
     }
 
     public Page<UserDto> getUsers(Pageable pageable) {
@@ -80,6 +86,7 @@ public class AdminService {
         u.setRole(role);
         u = userRepository.save(u);
         refreshTokenRepository.deleteByUser(u);
+        auditLogService.recordAudit(currentUser, "USER_ROLE_CHANGE", "USER", u.getId(), "Role updated to " + role, "127.0.0.1");
         return UserDto.fromEntity(u);
     }
 
@@ -102,6 +109,7 @@ public class AdminService {
         u.setActive(active);
         u = userRepository.save(u);
         refreshTokenRepository.deleteByUser(u);
+        auditLogService.recordAudit(currentUser, "USER_ACTIVE_CHANGE", "USER", u.getId(), "Active status set to " + active, "127.0.0.1");
         return UserDto.fromEntity(u);
     }
 
@@ -115,7 +123,7 @@ public class AdminService {
     }
 
     public Page<AuditLog> getAuditLogs(Pageable pageable) {
-        return auditLogRepository.findAll(pageable);
+        return auditLogRepository.findAllByOrderByCreatedAtDesc(pageable);
     }
 
     public List<RuleConfig> getRuleConfigs() {
@@ -126,6 +134,7 @@ public class AdminService {
     public RuleConfig updateRuleConfig(String key, String value) {
         ruleConfigService.updateRules(Map.of(key, value));
         riskEngine.recomputeAll();
+        auditLogService.recordAudit(null, "RULE_CONFIG_UPDATE", "RULE_CONFIG", null, "Updated rule " + key + " = " + value, "127.0.0.1");
         return ruleConfigRepository.findByConfigKey(key)
                 .orElseThrow(() -> new ResourceNotFoundException("Rule not found: " + key));
     }
@@ -154,7 +163,8 @@ public class AdminService {
         apiKey.setCreatedBy(currentUser);
         apiKey.setCreatedAt(LocalDateTime.now());
 
-        apiKeyRepository.save(apiKey);
+        apiKey = apiKeyRepository.save(apiKey);
+        auditLogService.recordAudit(currentUser, "API_KEY_CREATED", "API_KEY", apiKey.getId(), "Created API key: " + name, "127.0.0.1");
 
         Map<String, String> res = new HashMap<>();
         res.put("name", name);
@@ -165,6 +175,7 @@ public class AdminService {
     @Transactional
     public void deleteApiKey(Long id) {
         apiKeyRepository.deleteById(id);
+        auditLogService.recordAudit(null, "API_KEY_DELETED", "API_KEY", id, "Deleted API key #" + id, "127.0.0.1");
     }
 
     @Transactional
@@ -174,6 +185,52 @@ public class AdminService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to reset demo data", e);
         }
+    }
+
+    @Transactional
+    public com.nerlogix.dto.RoadSegmentDto snapRoadGeometry(Long segmentId) {
+        RoadSegment seg = roadSegmentRepository.findById(segmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Road segment not found: " + segmentId));
+
+        RoadNode from = seg.getFromNode();
+        RoadNode to = seg.getToNode();
+
+        List<double[]> points = new ArrayList<>();
+        int numPoints = 6;
+        Random rand = new Random(segmentId);
+        for (int i = 0; i <= numPoints; i++) {
+            double ratio = (double) i / numPoints;
+            double lat = from.getLat() + (to.getLat() - from.getLat()) * ratio + (rand.nextDouble() - 0.5) * 0.008;
+            double lng = from.getLng() + (to.getLng() - from.getLng()) * ratio + (rand.nextDouble() - 0.5) * 0.008;
+            points.add(new double[]{lat, lng});
+        }
+        try {
+            seg.setPolyline(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(points));
+        } catch (Exception e) {
+            seg.setPolyline("[]");
+        }
+        seg.setUpdatedAt(LocalDateTime.now());
+        seg = roadSegmentRepository.save(seg);
+        String state = from.getDistrict() != null ? from.getDistrict().getState() : "Assam";
+        return new com.nerlogix.dto.RoadSegmentDto(
+            seg.getId(),
+            seg.getName(),
+            seg.getHighwayCode(),
+            seg.getAssetType(),
+            seg.getLengthKm(),
+            seg.getBaseSpeedKmph(),
+            seg.getTerrainClass(),
+            seg.getLandslideProne(),
+            seg.getFloodProne(),
+            seg.getStatus(),
+            seg.getRiskScore(),
+            seg.getStatusReason(),
+            seg.getPolyline(),
+            from.getName(),
+            to.getName(),
+            state,
+            seg.getUpdatedAt()
+        );
     }
 
     private String hashKey(String rawKey) {

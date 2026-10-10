@@ -26,6 +26,12 @@ public class WeatherController {
         return weatherService.getDistrictWeatherList();
     }
 
+    @GetMapping("/logs")
+    public org.springframework.data.domain.Page<DistrictWeatherDto> getWeatherLogs(
+            @org.springframework.data.web.PageableDefault(size = 20) org.springframework.data.domain.Pageable pageable) {
+        return weatherService.getWeatherLogs(pageable);
+    }
+
     @PostMapping("/logs")
     public DistrictWeatherDto logWeather(
             @Valid @RequestBody WeatherLogRequest request,

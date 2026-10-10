@@ -39,6 +39,20 @@ public class WeatherService {
     }
 
     @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<DistrictWeatherDto> getWeatherLogs(org.springframework.data.domain.Pageable pageable) {
+        return weatherLogRepository.findAllByOrderByLoggedAtDesc(pageable).map(w -> new DistrictWeatherDto(
+                w.getDistrict().getId(),
+                w.getDistrict().getName(),
+                w.getDistrict().getState(),
+                w.getCondition(),
+                w.getRainMm(),
+                w.getNote(),
+                w.getSource(),
+                w.getLoggedAt()
+        ));
+    }
+
+    @Transactional(readOnly = true)
     public List<DistrictWeatherDto> getDistrictWeatherList() {
         List<District> districts = districtRepository.findAll();
         List<DistrictWeatherDto> list = new ArrayList<>();

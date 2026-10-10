@@ -114,4 +114,10 @@ public class AdminController {
         adminService.resetDemoData();
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/roads/snap-geometry")
+    public ResponseEntity<com.nerlogix.dto.RoadSegmentDto> snapRoadGeometry(@RequestBody Map<String, Long> body) {
+        Long segmentId = body.get("segmentId");
+        return ResponseEntity.ok(adminService.snapRoadGeometry(segmentId));
+    }
 }

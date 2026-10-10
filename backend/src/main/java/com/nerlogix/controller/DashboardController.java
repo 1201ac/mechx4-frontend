@@ -33,6 +33,16 @@ public class DashboardController {
         return ResponseEntity.ok(dashboardService.getSupplyStatus());
     }
 
+    @GetMapping("/api/dashboard/movement")
+    public ResponseEntity<Map<String, Object>> getMovementStatus() {
+        return ResponseEntity.ok(dashboardService.getMovementStatus());
+    }
+
+    @GetMapping("/api/dashboard/emergency")
+    public ResponseEntity<Map<String, Object>> getEmergencyDashboard() {
+        return ResponseEntity.ok(dashboardService.getEmergencyDashboard());
+    }
+
     @GetMapping("/api/analytics/charts")
     public ResponseEntity<Map<String, Object>> getAnalyticsCharts() {
         return ResponseEntity.ok(dashboardService.getAnalyticsCharts());

@@ -56,36 +56,36 @@
 | Uploads | `GET /api/uploads/{filename}` | Yes | Yes | Yes | Yes | `field-reports.spec.ts` | Working |
 | Weather | `GET /api/weather/districts` | Yes | Yes | Yes | Yes | `weather-risk.spec.ts` | Working |
 | Weather | `POST /api/weather/logs` | Yes | Yes | Yes | Yes | `weather-risk.spec.ts` | Working |
-| Weather | `GET /api/weather/logs` | Yes | Yes | Yes | No | None | Untested |
+| Weather | `GET /api/weather/logs` | Yes | Yes | Yes | Yes | `MissingFeaturesTest` | Working |
 | Alerts | `GET /api/alerts` | Yes | Yes | Yes | Yes | `pipeline.spec.ts` | Working |
 | Alerts | `POST /api/alerts/{id}/ack` | No | Yes | Yes | Yes | Untested | Untested |
 | Alerts | `POST /api/alerts/{id}/resolve` | No | Yes | Yes | Yes | Untested | Untested |
 | Notifications | `GET /api/notifications` | Yes | Yes | Yes | Yes | `pipeline.spec.ts` | Working |
 | Notifications | `POST /api/notifications/{id}/read` | Yes | Yes | Yes | Yes | Untested | Untested |
 | Notifications | `POST /api/notifications/read-all` | Yes | Yes | Yes | Yes | Untested | Untested |
-| Notifications | `POST /api/notifications/broadcast` | No | Yes | Yes | Yes | Untested | Untested |
+| Notifications | `POST /api/notifications/broadcast` | No | Yes | Yes | Yes | `MissingFeaturesTest` | Working |
 | Dashboard | `GET /api/dashboard/summary` | Yes | Yes | Yes | Yes | `dashboard.spec.ts` | Working |
 | Dashboard | `GET /api/dashboard/districts` | Yes | Yes | Yes | Yes | `dashboard.spec.ts` | Working |
 | Dashboard | `GET /api/dashboard/supply` | Yes | Yes | Yes | Yes | `dashboard.spec.ts` | Working |
-| Dashboard | `GET /api/dashboard/movement` | Yes | Yes | Yes | No | None | Missing |
-| Dashboard | `GET /api/dashboard/emergency` | Yes | Yes | Yes | No | None | Missing |
+| Dashboard | `GET /api/dashboard/movement` | Yes | Yes | Yes | Yes | `MissingFeaturesTest` | Working |
+| Dashboard | `GET /api/dashboard/emergency` | Yes | Yes | Yes | Yes | `MissingFeaturesTest` | Working |
 | Analytics | `GET /api/analytics/charts` | Yes | Yes | Yes | Yes | `dashboard.spec.ts` | Working |
-| Settings | `GET /api/settings/emergency` | Yes | Yes | Yes | No | None | Missing |
-| Settings | `POST /api/settings/emergency` | No | Yes | Yes | No | None | Missing |
-| Search | `GET /api/search` | Yes | Yes | Yes | No | None | Missing |
+| Settings | `GET /api/settings/emergency` | Yes | Yes | Yes | Yes | `MissingFeaturesTest` | Working |
+| Settings | `POST /api/settings/emergency` | No | Yes | Yes | Yes | `MissingFeaturesTest` | Working |
+| Search | `GET /api/search` | Yes | Yes | Yes | Yes | `MissingFeaturesTest` | Working |
 | Admin | `GET /api/admin/users` | No | No | Yes | Yes | `admin.spec.ts` | Working |
 | Admin | `POST /api/admin/users` | No | No | Yes | Yes | Untested | Untested |
 | Admin | `PATCH /api/admin/users/{id}` | No | No | Yes | Yes | Untested | Untested |
 | Admin | `POST /api/admin/users/{id}/reset-password` | No | No | Yes | Yes | Untested | Untested |
-| Admin | `GET /api/admin/rules` | No | No | Yes | Yes | `admin.spec.ts` | Broken |
-| Admin | `PATCH /api/admin/rules` | No | No | Yes | Yes | Untested | Broken |
+| Admin | `GET /api/admin/rules` | No | No | Yes | Yes | `admin.spec.ts` | Working |
+| Admin | `PATCH /api/admin/rules` | No | No | Yes | Yes | Untested | Working |
 | Admin | `GET /api/admin/api-keys` | No | No | Yes | Yes | `admin.spec.ts` | Working |
 | Admin | `POST /api/admin/api-keys` | No | No | Yes | Yes | `admin.spec.ts` | Working |
 | Admin | `DELETE /api/admin/api-keys/{id}` | No | No | Yes | Yes | Untested | Untested |
-| Admin | `GET /api/admin/audit` | No | No | Yes | Yes | `admin.spec.ts` | Broken |
+| Admin | `GET /api/admin/audit` | No | No | Yes | Yes | `admin.spec.ts` | Working |
 | Admin | `POST /api/admin/demo/rain` | No | No | Yes | Yes | `weather-risk.spec.ts` | Working |
 | Admin | `POST /api/admin/demo/reset` | No | No | Yes | Yes | Untested | Untested |
-| Admin | `POST /api/admin/roads/snap-geometry` | No | No | Yes | No | None | Missing |
+| Admin | `POST /api/admin/roads/snap-geometry` | No | No | Yes | Yes | `MissingFeaturesTest` | Working |
 | Integrations | `POST /api/integrations/road-status` | API Key | API Key | API Key | Yes | Untested | Working |
 | Integrations | `POST /api/integrations/weather` | API Key | API Key | API Key | Yes | Untested | Working |
 | Integrations | `POST /api/integrations/assets` | API Key | API Key | API Key | Yes | Untested | Working |
