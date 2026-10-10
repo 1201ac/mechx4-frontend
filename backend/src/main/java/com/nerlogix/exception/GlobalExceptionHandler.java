@@ -2,6 +2,8 @@ package com.nerlogix.exception;
 
 import com.nerlogix.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -10,6 +12,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -17,6 +20,21 @@ import java.util.NoSuchElementException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex, HttpServletRequest request) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        ErrorResponse res = ErrorResponse.of(
+            status.value(),
+            status.getReasonPhrase(),
+            ex.getReason() != null ? ex.getReason() : ex.getMessage(),
+            request.getRequestURI(),
+            null
+        );
+        return ResponseEntity.status(status).body(res);
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex, HttpServletRequest request) {
@@ -85,10 +103,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneralException(Exception ex, HttpServletRequest request) {
+        logger.error("Unhandled exception at path {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         ErrorResponse res = ErrorResponse.of(
             HttpStatus.INTERNAL_SERVER_ERROR.value(),
             "Internal Server Error",
-            ex.getMessage(),
+            "An internal server error occurred",
             request.getRequestURI(),
             null
         );

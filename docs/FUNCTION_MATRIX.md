@@ -86,9 +86,9 @@
 | Admin | `POST /api/admin/demo/rain` | No | No | Yes | Yes | `weather-risk.spec.ts` | Working |
 | Admin | `POST /api/admin/demo/reset` | No | No | Yes | Yes | Untested | Untested |
 | Admin | `POST /api/admin/roads/snap-geometry` | No | No | Yes | No | None | Missing |
-| Integrations | `POST /api/integrations/road-status` | API Key | API Key | API Key | Yes | Untested | Broken |
-| Integrations | `POST /api/integrations/weather` | API Key | API Key | API Key | Yes | Untested | Broken |
-| Integrations | `POST /api/integrations/assets` | API Key | API Key | API Key | Yes | Untested | Broken |
+| Integrations | `POST /api/integrations/road-status` | API Key | API Key | API Key | Yes | Untested | Working |
+| Integrations | `POST /api/integrations/weather` | API Key | API Key | API Key | Yes | Untested | Working |
+| Integrations | `POST /api/integrations/assets` | API Key | API Key | API Key | Yes | Untested | Working |
 | Realtime | `GET /api/realtime/stream` | Yes | Yes | Yes | Yes | `pipeline.spec.ts` | Broken |
 | UI Route | `/` Landing Page | Yes | Yes | Yes | N/A | `landing.spec.ts` | Working |
 | UI Route | `/login` Login Page | Yes | Yes | Yes | N/A | `auth.spec.ts` | Working |

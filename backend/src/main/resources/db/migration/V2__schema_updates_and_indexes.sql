@@ -13,3 +13,7 @@ CREATE INDEX idx_field_reports_user_status ON field_reports(user_id, status);
 CREATE INDEX idx_shipments_status ON shipments(status);
 CREATE INDEX idx_shipments_vehicle ON shipments(vehicle_id);
 CREATE INDEX idx_shipments_driver ON shipments(driver_user_id);
+
+ALTER TABLE refresh_tokens ADD COLUMN family_id VARCHAR(64);
+ALTER TABLE refresh_tokens ADD COLUMN revoked BOOLEAN DEFAULT FALSE;
+CREATE INDEX idx_refresh_tokens_family ON refresh_tokens(family_id);

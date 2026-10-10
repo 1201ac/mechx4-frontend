@@ -78,7 +78,7 @@ class AuthTest {
 
     @Test
     void testRegisterNewUser() throws Exception {
-        RegisterRequest req = new RegisterRequest("newuser@nerlogix.com", "Password123", "New Field User", "en");
+        RegisterRequest req = new RegisterRequest("newuser@nerlogix.com", "Password123!", "New Field User", "en");
         mockMvc.perform(post("/api/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(req)))
