@@ -5,6 +5,7 @@ import { postDriverPosition } from '../api/vehicles';
 import { createIncident } from '../api/incidents';
 import { useAuth } from '../context/AuthContext';
 import { Truck, MapPin, Play, CheckCircle, Navigation, RefreshCw, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
 
 export const DriverPage: React.FC = () => {
   const { user } = useAuth();
@@ -175,6 +176,17 @@ export const DriverPage: React.FC = () => {
                   <div className="text-ink-600">{activeShipment.cargoCategory} • {activeShipment.weightKg} kg • {activeShipment.priority}</div>
                 </div>
               </div>
+            </div>
+
+            {/* Google Maps Location View */}
+            <div className="pt-2">
+              <GoogleMapEmbed
+                lat={activeShipment.destinationNode.lat}
+                lng={activeShipment.destinationNode.lng}
+                zoom={13}
+                height="220px"
+                title={`Google Maps Destination - ${activeShipment.destinationNode.name}`}
+              />
             </div>
 
             {/* GPS Tracker status bar */}

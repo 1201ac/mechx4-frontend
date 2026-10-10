@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getVehicles, createVehicle, deleteVehicle, getVehicleTrail, Vehicle, VehiclePosition } from '../api/vehicles';
 import { useAuth } from '../context/AuthContext';
 import { Truck, Plus, RefreshCw, X, MapPin } from 'lucide-react';
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
 
 export const VehiclesPage: React.FC = () => {
   const { user } = useAuth();
@@ -296,6 +297,13 @@ export const VehiclesPage: React.FC = () => {
                 <X className="w-5 h-5" />
               </button>
             </div>
+            <GoogleMapEmbed
+              lat={selectedVehicleTrail.vehicle.lat}
+              lng={selectedVehicleTrail.vehicle.lng}
+              zoom={14}
+              height="180px"
+              title={`Google Maps Location - ${selectedVehicleTrail.vehicle.regNo} (${selectedVehicleTrail.vehicle.type})`}
+            />
             <div className="overflow-y-auto flex-1 divide-y divide-mist-200 text-xs font-mono">
               {selectedVehicleTrail.trail.length === 0 ? (
                 <div className="py-8 text-center text-ink-400 font-sans">No position history recorded yet.</div>

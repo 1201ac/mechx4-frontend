@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getDistrictWeatherList, logWeather, triggerDemoRain } from '../api/weather';
 import { useAuth } from '../context/AuthContext';
-import { CloudRain, CloudLightning, Sun, Cloud, AlertCircle, Plus, Zap, CheckCircle2 } from 'lucide-react';
+import { CloudRain, CloudLightning, Sun, Cloud, AlertCircle, Plus, Zap, CheckCircle2, MapPin } from 'lucide-react';
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
 
 export const WeatherPage: React.FC = () => {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export const WeatherPage: React.FC = () => {
   const [filterState, setFilterState] = useState('');
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
+  const [expandedMapDistrictId, setExpandedMapDistrictId] = useState<number | null>(null);
   const [condition, setCondition] = useState<'NONE' | 'LIGHT' | 'MODERATE' | 'HEAVY' | 'EXTREME'>('MODERATE');
   const [rainMm, setRainMm] = useState<string>('25');
   const [note, setNote] = useState('');
@@ -240,8 +242,26 @@ export const WeatherPage: React.FC = () => {
 
               <div className="flex items-center justify-between text-[11px] text-ink-400 border-t border-mist-100 pt-2">
                 <span className="bg-mist-100 px-1.5 py-0.5 rounded font-mono text-[10px] uppercase">{w.source}</span>
+                <button
+                  onClick={() => setExpandedMapDistrictId(expandedMapDistrictId === w.districtId ? null : w.districtId)}
+                  className="text-river-600 hover:text-river-800 font-medium flex items-center gap-1 text-xs"
+                >
+                  <MapPin className="w-3 h-3" />
+                  {expandedMapDistrictId === w.districtId ? 'Hide Map' : 'Google Maps'}
+                </button>
                 <span>{new Date(w.loggedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
+
+              {expandedMapDistrictId === w.districtId && (
+                <div className="pt-2">
+                  <GoogleMapEmbed
+                    query={`${w.districtName}, ${w.state}, India`}
+                    zoom={10}
+                    height="160px"
+                    title={`Google Maps - ${w.districtName}, ${w.state}`}
+                  />
+                </div>
+              )}
             </div>
           ))}
         </div>

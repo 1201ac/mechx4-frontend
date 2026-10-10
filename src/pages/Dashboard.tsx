@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardSummary, getDistrictConnectivityList, getSupplyStatus, getAnalyticsCharts } from '../api/dashboard';
-import { MapPin, Truck, Package, Clock, AlertTriangle, ShieldAlert, BarChart2, RefreshCw, Box } from 'lucide-react';
+import { MapPin, Truck, Package, Clock, AlertTriangle, ShieldAlert, BarChart2, RefreshCw, Box, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
 
 const COLORS = ['#2F8F5B', '#D98A00', '#C6403A'];
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'kpis' | 'districts' | 'supply' | 'charts'>('kpis');
+  const [selectedDistrictMap, setSelectedDistrictMap] = useState<{ name: string; state: string } | null>(null);
 
   const { data: summary, isLoading: loadingSummary, refetch: refetchSummary } = useQuery({
     queryKey: ['dashboard-summary'],
@@ -235,6 +237,7 @@ export const Dashboard: React.FC = () => {
                     <th className="p-4">State</th>
                     <th className="p-4">Connectivity Score</th>
                     <th className="p-4">Status Category</th>
+                    <th className="p-4 text-right">Map View</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-mist-100">
@@ -251,6 +254,14 @@ export const Dashboard: React.FC = () => {
                         }`}>
                           {d.category}
                         </span>
+                      </td>
+                      <td className="p-4 text-right">
+                        <button
+                          onClick={() => setSelectedDistrictMap({ name: d.name, state: d.state })}
+                          className="px-2.5 py-1 border border-mist-200 rounded text-xs font-medium text-river-600 hover:bg-mist-100 inline-flex items-center gap-1"
+                        >
+                          <MapPin className="w-3 h-3" /> Google Map
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -277,6 +288,7 @@ export const Dashboard: React.FC = () => {
                     <th className="p-4">Daily Demand</th>
                     <th className="p-4">Days of Cover</th>
                     <th className="p-4">Supply Status</th>
+                    <th className="p-4 text-right">Map View</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-mist-100">
@@ -298,12 +310,45 @@ export const Dashboard: React.FC = () => {
                           </span>
                         )}
                       </td>
+                      <td className="p-4 text-right">
+                        <button
+                          onClick={() => setSelectedDistrictMap({ name: s.districtName, state: s.state })}
+                          className="px-2.5 py-1 border border-mist-200 rounded text-xs font-medium text-river-600 hover:bg-mist-100 inline-flex items-center gap-1"
+                        >
+                          <MapPin className="w-3 h-3" /> Google Map
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* District Google Map Modal */}
+      {selectedDistrictMap && (
+        <div className="fixed inset-0 bg-ink-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 border border-mist-200 shadow-xl">
+            <div className="flex justify-between items-center pb-2 border-b border-mist-200">
+              <div>
+                <h2 className="text-lg font-bold text-ink-900 font-heading">
+                  {selectedDistrictMap.name} District
+                </h2>
+                <span className="text-xs text-ink-400 font-mono">{selectedDistrictMap.state}, North Eastern Region</span>
+              </div>
+              <button onClick={() => setSelectedDistrictMap(null)} className="text-ink-400 hover:text-ink-900 p-1">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <GoogleMapEmbed
+              query={`${selectedDistrictMap.name}, ${selectedDistrictMap.state}, India`}
+              zoom={11}
+              height="280px"
+              title={`Google Maps Location - ${selectedDistrictMap.name}, ${selectedDistrictMap.state}`}
+            />
+          </div>
         </div>
       )}
     </div>

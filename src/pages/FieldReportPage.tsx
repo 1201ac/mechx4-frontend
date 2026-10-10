@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { enqueueFieldReport } from '../utils/syncEngine';
 import { Camera, MapPin, CheckCircle, Send } from 'lucide-react';
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
 
 export const FieldReportPage: React.FC = () => {
   const [lat, setLat] = useState<number | null>(null);
@@ -111,6 +112,17 @@ export const FieldReportPage: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Google Maps Location Preview */}
+        {lat != null && lng != null && (
+          <GoogleMapEmbed
+            lat={lat}
+            lng={lng}
+            zoom={14}
+            height="180px"
+            title="Field Incident GPS Location Preview"
+          />
+        )}
 
         {/* Incident Type */}
         <div>

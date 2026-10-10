@@ -3,7 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getIncidents, resolveIncident, getIncidentEvents, getIncidentHistoryTimeline, Incident, IncidentEvent } from '../api/incidents';
 import { getFieldReports, verifyFieldReport, rejectFieldReport, FieldReport } from '../api/fieldReports';
 import { useAuth } from '../context/AuthContext';
-import { ShieldAlert, RefreshCw, CheckCircle2, XCircle, FileText, Image as ImageIcon, History } from 'lucide-react';
+import { ShieldAlert, RefreshCw, CheckCircle2, XCircle, FileText, Image as ImageIcon, History, MapPin } from 'lucide-react';
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
 
 export const IncidentsPage: React.FC = () => {
   const { user } = useAuth();
@@ -17,6 +18,7 @@ export const IncidentsPage: React.FC = () => {
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [selectedIncidentEvents, setSelectedIncidentEvents] = useState<{ incident: Incident; events: IncidentEvent[] } | null>(null);
+  const [expandedMapId, setExpandedMapId] = useState<string | null>(null);
 
   // Queries
   const { data: incidentsData, isLoading: loadingIncidents, refetch: refetchIncidents } = useQuery({
@@ -192,6 +194,13 @@ export const IncidentsPage: React.FC = () => {
 
                   <div className="flex justify-end gap-2 pt-2 border-t border-mist-100">
                     <button
+                      onClick={() => setExpandedMapId(expandedMapId === `inc-${inc.id}` ? null : `inc-${inc.id}`)}
+                      className="px-3 py-1 border border-mist-200 rounded text-xs font-medium text-ink-700 hover:bg-mist-100 flex items-center gap-1"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-river-600" />
+                      {expandedMapId === `inc-${inc.id}` ? 'Hide Map' : 'Google Maps View'}
+                    </button>
+                    <button
                       onClick={() => handleViewEvents(inc)}
                       className="px-3 py-1 border border-mist-200 rounded text-xs font-medium text-river-700 hover:bg-mist-100"
                     >
@@ -208,6 +217,18 @@ export const IncidentsPage: React.FC = () => {
                       </button>
                     )}
                   </div>
+
+                  {expandedMapId === `inc-${inc.id}` && (
+                    <div className="pt-2">
+                      <GoogleMapEmbed
+                        lat={inc.lat}
+                        lng={inc.lng}
+                        zoom={14}
+                        height="200px"
+                        title={`Google Maps Location - INC-${inc.id} (${inc.type})`}
+                      />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
