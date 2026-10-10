@@ -43,6 +43,7 @@ export const Sidebar: React.FC = () => {
         { label: 'Shipments', to: '/shipments', icon: Package },
         { label: 'Vehicles', to: '/vehicles', icon: Truck },
         { label: 'Alerts', to: '/alerts', icon: AlertTriangle, roles: ['MODERATOR', 'ADMIN'] },
+        { label: 'Driver Mode', to: '/driver', icon: Truck },
       ],
     },
     {
