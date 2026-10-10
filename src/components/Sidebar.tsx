@@ -1,67 +1,86 @@
 import React from 'react'
 import { NavLink } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import {
   MapPin, LayoutDashboard, CloudRain, Navigation,
   AlertTriangle, ShieldAlert, Truck, Package,
-  FileText, Clock, Users, Sliders, Key, History, Wrench, Settings
+  FileText, Clock, Users, Sliders, Key, History, Wrench, Settings, Database
 } from 'lucide-react'
 import { useAuth, Role } from '../context/AuthContext'
+import api from '../api/axios'
 
 interface NavItem {
-  label: string
+  key: string
   to: string
   icon: React.ElementType
   roles?: Role[]
+  badge?: number | null
 }
 
 interface NavGroup {
-  title: string
+  titleKey: string
   items: NavItem[]
 }
 
 export const Sidebar: React.FC = () => {
   const { user } = useAuth()
+  const { t } = useTranslation()
+
+  const { data: summary } = useQuery({
+    queryKey: ['dashboard-summary-sidebar'],
+    queryFn: async () => {
+      const res = await api.get('/dashboard/summary')
+      return res.data
+    },
+    enabled: !!user && (user.role === 'MODERATOR' || user.role === 'ADMIN'),
+    refetchInterval: 15000,
+  })
+
   if (!user) return null
 
   const userRole = user.role
+  const pendingCount = summary?.pendingFieldReports || 0
 
   const groups: NavGroup[] = [
     {
-      title: 'Overview',
+      titleKey: 'overview',
       items: [
-        { label: 'Live Map', to: '/map', icon: MapPin },
-        { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
-        { label: 'Weather', to: '/weather', icon: CloudRain },
-        { label: 'Route Planner', to: '/planner', icon: Navigation },
+        { key: 'liveMap', to: '/map', icon: MapPin },
+        { key: 'dashboard', to: '/dashboard', icon: LayoutDashboard },
+        { key: 'weather', to: '/weather', icon: CloudRain },
+        { key: 'routePlanner', to: '/planner', icon: Navigation },
       ],
     },
     {
-      title: 'Operations',
+      titleKey: 'operations',
       items: [
-        { label: 'Road Status', to: '/roads', icon: AlertTriangle },
-        { label: 'Incidents Log', to: '/incidents', icon: ShieldAlert },
-        { label: 'Shipments', to: '/shipments', icon: Package },
-        { label: 'Vehicles', to: '/vehicles', icon: Truck },
-        { label: 'Alerts', to: '/alerts', icon: AlertTriangle, roles: ['MODERATOR', 'ADMIN'] },
-        { label: 'Driver Mode', to: '/driver', icon: Truck },
+        { key: 'roadStatus', to: '/roads', icon: AlertTriangle, roles: ['MODERATOR', 'ADMIN'] },
+        { key: 'incidentsLog', to: '/incidents', icon: ShieldAlert, roles: ['MODERATOR', 'ADMIN'] },
+        { key: 'shipments', to: '/shipments', icon: Package, roles: ['MODERATOR', 'ADMIN'] },
+        { key: 'myDeliveries', to: '/shipments', icon: Package, roles: ['USER'] },
+        { key: 'vehicles', to: '/vehicles', icon: Truck, roles: ['MODERATOR', 'ADMIN'] },
+        { key: 'alerts', to: '/alerts', icon: AlertTriangle },
+        { key: 'driverMode', to: '/driver', icon: Truck, roles: ['USER'] },
       ],
     },
     {
-      title: 'Field & User',
+      titleKey: 'fieldUser',
       items: [
-        { label: 'Field Report', to: '/field-report', icon: FileText },
-        { label: 'Pending Queue', to: '/pending-reports', icon: Clock },
-        { label: 'Settings', to: '/settings', icon: Settings },
+        { key: 'fieldReport', to: '/field-report', icon: FileText },
+        { key: 'verificationQueue', to: '/pending-reports', icon: Clock, roles: ['MODERATOR', 'ADMIN'], badge: pendingCount > 0 ? pendingCount : null },
+        { key: 'settings', to: '/settings', icon: Settings },
       ],
     },
     {
-      title: 'Admin',
+      titleKey: 'admin',
       items: [
-        { label: 'User Management', to: '/admin/users', icon: Users, roles: ['ADMIN'] },
-        { label: 'Rule Config', to: '/admin/rules', icon: Sliders, roles: ['ADMIN'] },
-        { label: 'API Keys', to: '/admin/api-keys', icon: Key, roles: ['ADMIN'] },
-        { label: 'Audit Log', to: '/admin/audit', icon: History, roles: ['ADMIN'] },
-        { label: 'Demo Tools', to: '/admin/demo', icon: Wrench, roles: ['ADMIN'] },
+        { key: 'userManagement', to: '/admin/users', icon: Users, roles: ['ADMIN'] },
+        { key: 'networkData', to: '/admin/network', icon: Database, roles: ['ADMIN'] },
+        { key: 'ruleConfig', to: '/admin/rules', icon: Sliders, roles: ['ADMIN'] },
+        { key: 'apiKeys', to: '/admin/api-keys', icon: Key, roles: ['ADMIN'] },
+        { key: 'auditLog', to: '/admin/audit', icon: History, roles: ['ADMIN'] },
+        { key: 'demoTools', to: '/admin/demo', icon: Wrench, roles: ['ADMIN'] },
       ],
     },
   ]
@@ -70,7 +89,7 @@ export const Sidebar: React.FC = () => {
     <aside className="w-64 bg-white border-r border-mist-200 flex flex-col h-screen sticky top-0 select-none">
       <div className="p-4 border-b border-mist-200 flex items-center justify-between">
         <div>
-          <span className="font-heading font-bold text-lg text-river-600">NER-Logix</span>
+          <span className="font-heading font-bold text-lg text-river-600">{t('appName')}</span>
           <span className="block text-xs text-ink-400 font-mono">Platform v1.0</span>
         </div>
       </div>
@@ -83,27 +102,34 @@ export const Sidebar: React.FC = () => {
           if (visibleItems.length === 0) return null
 
           return (
-            <div key={group.title}>
+            <div key={group.titleKey}>
               <div className="px-3 text-xs font-semibold text-ink-400 uppercase tracking-wider mb-2">
-                {group.title}
+                {t(group.titleKey)}
               </div>
               <div className="space-y-1">
                 {visibleItems.map((item) => {
                   const Icon = item.icon
                   return (
                     <NavLink
-                      key={item.to}
+                      key={item.to + item.key}
                       to={item.to}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 rounded-control text-sm font-medium transition-colors ${
+                        `flex items-center justify-between px-3 py-2 rounded-control text-sm font-medium transition-colors ${
                           isActive
                             ? 'bg-river-100 text-river-600 font-semibold'
                             : 'text-ink-600 hover:bg-mist-100 hover:text-ink-900'
                         }`
                       }
                     >
-                      <Icon className="w-4 h-4" />
-                      <span>{item.label}</span>
+                      <div className="flex items-center gap-3">
+                        <Icon className="w-4 h-4" />
+                        <span>{t(item.key)}</span>
+                      </div>
+                      {item.badge !== undefined && item.badge !== null && (
+                        <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-marigold-100 text-marigold-700">
+                          {item.badge}
+                        </span>
+                      )}
                     </NavLink>
                   )
                 })}
