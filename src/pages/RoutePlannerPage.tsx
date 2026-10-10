@@ -1,70 +1,53 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { MapContainer, TileLayer, Polyline, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import { getMapLocations, RoadNodeDto } from '../api/map';
-import { planRoutes, RouteOptionDto } from '../api/routes';
-import { Navigation, AlertTriangle, Route as RouteIcon, ShieldAlert, ArrowRight, RefreshCw } from 'lucide-react';
-import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
-import { GoogleDirectionsMap } from '../components/GoogleDirectionsMap';
+import React, { useState } from 'react'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { getMapLocations, RoadNodeDto } from '../api/map'
+import { planRoutes, RouteOptionDto } from '../api/routes'
+import { Navigation, AlertTriangle, Route as RouteIcon, ShieldAlert, ArrowRight, RefreshCw, ExternalLink } from 'lucide-react'
+import { GoogleDirectionsMap } from '../components/GoogleDirectionsMap'
 
-const createNodeIcon = (kind: string) => {
-  const color = kind === 'HOSPITAL' ? '#C6403A' : kind === 'DEPOT' ? '#14597A' : '#4B5563';
-  return L.divIcon({
-    className: 'custom-node-icon',
-    html: `<div style="background:${color}; color:white; padding:3px 6px; border-radius:4px; font-weight:bold; font-size:11px; border:1px solid white; box-shadow:0 1px 3px rgba(0,0,0,0.3); whitespace:nowrap;">📍</div>`,
-    iconAnchor: [10, 10]
-  });
-};
+// Route Planner is Google-Maps-only by design. Leaflet fallback is intentionally omitted.
 
 export const RoutePlannerPage: React.FC = () => {
-  const [originId, setOriginId] = useState<number | ''>('');
-  const [destId, setDestId] = useState<number | ''>('');
-  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(1);
+  const [originId, setOriginId] = useState<number | ''>('')
+  const [destId, setDestId] = useState<number | ''>('')
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState<number>(1)
 
   const { data: nodes = [], isLoading: isLoadingNodes, isError: isErrorNodes, refetch: refetchNodes } = useQuery<RoadNodeDto[]>({
     queryKey: ['mapLocations'],
-    queryFn: getMapLocations
-  });
+    queryFn: getMapLocations,
+  })
 
   const planMutation = useMutation({
     mutationFn: planRoutes,
     onSuccess: (data) => {
       if (data.length > 0) {
-        setSelectedOptionIndex(data[0].optionIndex);
+        setSelectedOptionIndex(data[0].optionIndex)
       }
-    }
-  });
+    },
+  })
 
   const handlePlan = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
     if (typeof originId === 'number' && typeof destId === 'number') {
-      planMutation.mutate({ originNodeId: originId, destinationNodeId: destId });
-    }
-  };
-
-  const currentOption: RouteOptionDto | undefined = planMutation.data?.find(opt => opt.optionIndex === selectedOptionIndex);
-
-  let polylineCoords: [number, number][] = [];
-  if (currentOption?.geometry) {
-    try {
-      const parsed: [number, number][] = JSON.parse(currentOption.geometry);
-      polylineCoords = parsed;
-    } catch {
-      polylineCoords = [];
+      planMutation.mutate({ originNodeId: originId, destinationNodeId: destId })
     }
   }
 
-  const originNode = nodes.find(n => n.id === originId);
-  const destNode = nodes.find(n => n.id === destId);
+  const currentOption: RouteOptionDto | undefined = planMutation.data?.find((opt) => opt.optionIndex === selectedOptionIndex)
+
+  const originNode = nodes.find((n) => n.id === originId)
+  const destNode = nodes.find((n) => n.id === destId)
+
+  const externalMapUrl = originNode && destNode
+    ? `https://www.google.com/maps/dir/?api=1&origin=${originNode.lat},${originNode.lng}&destination=${destNode.lat},${destNode.lng}&travelmode=driving`
+    : `https://www.google.com/maps`
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl mx-auto p-6">
       <div>
         <h1 className="text-2xl font-bold text-ink-900 font-heading">Alternate Routes & Delay Estimator</h1>
         <p className="text-ink-500 text-sm">
-          Rule-based Dijkstra routing over accessible corridors with real-time risk penalties and delay predictions.
+          Rule-based Dijkstra routing over accessible corridors with real-time risk penalties and delay predictions. (Google-Maps-Only)
         </p>
       </div>
 
@@ -76,7 +59,7 @@ export const RoutePlannerPage: React.FC = () => {
             {isLoadingNodes ? (
               <div className="h-10 bg-mist-100 animate-pulse rounded-control" />
             ) : isErrorNodes ? (
-              <div className="flex items-center gap-2 text-xs text-crimson-600">
+              <div className="flex items-center gap-2 text-xs text-rust-600">
                 <span>Failed to load nodes</span>
                 <button type="button" onClick={() => refetchNodes()} className="underline font-semibold">Retry</button>
               </div>
@@ -102,7 +85,7 @@ export const RoutePlannerPage: React.FC = () => {
             {isLoadingNodes ? (
               <div className="h-10 bg-mist-100 animate-pulse rounded-control" />
             ) : isErrorNodes ? (
-              <div className="flex items-center gap-2 text-xs text-crimson-600">
+              <div className="flex items-center gap-2 text-xs text-rust-600">
                 <span>Failed to load nodes</span>
                 <button type="button" onClick={() => refetchNodes()} className="underline font-semibold">Retry</button>
               </div>
@@ -145,24 +128,11 @@ export const RoutePlannerPage: React.FC = () => {
         </form>
       </div>
 
-      {/* Google Maps Route Location & Directions Preview */}
-      {(originNode || destNode) && (
-        <GoogleMapEmbed
-          originLat={originNode?.lat}
-          originLng={originNode?.lng}
-          destLat={destNode?.lat}
-          destLng={destNode?.lng}
-          query={destNode ? `${destNode.name}, India` : `${originNode?.name}, India`}
-          height="240px"
-          title={`Google Maps Driving Route - ${originNode?.name || 'Origin'} to ${destNode?.name || 'Destination'}`}
-        />
-      )}
-
       {/* Error state */}
       {planMutation.isError && (
-        <div className="p-4 bg-crimson-50 border border-crimson-200 rounded-panel text-crimson-700 flex items-center justify-between">
+        <div className="p-4 bg-rust-50 border border-rust-200 rounded-panel text-rust-700 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-crimson-600 shrink-0" />
+            <AlertTriangle className="w-5 h-5 text-rust-600 shrink-0" />
             <span className="text-sm font-medium">
               {(planMutation.error as unknown as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to compute navigable route for the selected locations.'}
             </span>
@@ -170,10 +140,10 @@ export const RoutePlannerPage: React.FC = () => {
           <button
             onClick={() => {
               if (typeof originId === 'number' && typeof destId === 'number') {
-                planMutation.mutate({ originNodeId: originId, destinationNodeId: destId });
+                planMutation.mutate({ originNodeId: originId, destinationNodeId: destId })
               }
             }}
-            className="px-3 py-1 bg-crimson-600 text-white rounded text-xs font-semibold hover:bg-crimson-700"
+            className="px-3 py-1 bg-rust-600 text-white rounded text-xs font-semibold hover:bg-rust-700"
           >
             Retry
           </button>
@@ -185,17 +155,29 @@ export const RoutePlannerPage: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Options List */}
           <div className="space-y-4">
-            <h2 className="text-lg font-bold text-ink-900 font-heading flex items-center gap-2">
-              <RouteIcon className="w-5 h-5 text-river-600" />
-              <span>Available Route Options ({planMutation.data.length})</span>
-            </h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-ink-900 font-heading flex items-center gap-2">
+                <RouteIcon className="w-5 h-5 text-river-600" />
+                <span>Available Route Options ({planMutation.data.length})</span>
+              </h2>
+              <a
+                href={externalMapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1 bg-river-100 text-river-700 hover:bg-river-200 text-xs font-semibold rounded inline-flex items-center gap-1"
+                title="Start phone navigation"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> Open Maps
+              </a>
+            </div>
 
             {planMutation.data.map((opt) => {
-              const isSelected = opt.optionIndex === selectedOptionIndex;
-              const riskColor = opt.riskCategory === 'CRITICAL' ? 'bg-crimson-100 text-crimson-700 border-crimson-300' :
-                                opt.riskCategory === 'HIGH' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                                opt.riskCategory === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border-amber-200' :
-                                'bg-emerald-50 text-emerald-700 border-emerald-200';
+              const isSelected = opt.optionIndex === selectedOptionIndex
+              const riskColor =
+                opt.riskCategory === 'CRITICAL' ? 'bg-rust-100 text-rust-700 border-rust-300' :
+                opt.riskCategory === 'HIGH' ? 'bg-marigold-100 text-marigold-800 border-marigold-300' :
+                opt.riskCategory === 'MEDIUM' ? 'bg-marigold-50 text-marigold-700 border-marigold-200' :
+                'bg-tea-100 text-tea-700 border-tea-200'
 
               return (
                 <div
@@ -223,27 +205,27 @@ export const RoutePlannerPage: React.FC = () => {
                     </div>
                     <div>
                       <span className="block text-[10px] text-ink-400 uppercase font-semibold">Expected Delay</span>
-                      <span className={`font-bold text-sm ${opt.expectedDelayMin > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                      <span className={`font-bold text-sm ${opt.expectedDelayMin > 0 ? 'text-marigold-700' : 'text-tea-600'}`}>
                         +{opt.expectedDelayMin} min
                       </span>
                     </div>
                   </div>
 
-                  <p className="text-xs text-ink-600 italic bg-amber-50/50 p-2 rounded border border-amber-100/50 flex items-start gap-2">
-                    <ShieldAlert className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-ink-600 italic bg-marigold-50/50 p-2 rounded border border-marigold-100 flex items-start gap-2">
+                    <ShieldAlert className="w-3.5 h-3.5 text-marigold-600 shrink-0 mt-0.5" />
                     <span>{opt.reason}</span>
                   </p>
 
                   <div className="mt-3 pt-2 border-t border-mist-100 text-[11px] text-ink-400 flex items-center justify-between">
                     <span>{opt.segmentIds.length} road segments</span>
                     {opt.isEmergencyOptimized && (
-                      <span className="px-1.5 py-0.5 bg-crimson-100 text-crimson-800 rounded font-semibold text-[10px]">
+                      <span className="px-1.5 py-0.5 bg-rust-100 text-rust-800 rounded font-semibold text-[10px]">
                         EMERGENCY MODE
                       </span>
                     )}
                   </div>
                 </div>
-              );
+              )
             })}
           </div>
 
@@ -253,56 +235,10 @@ export const RoutePlannerPage: React.FC = () => {
               originLng={originNode?.lng}
               destLat={destNode?.lat}
               destLng={destNode?.lng}
-              fallbackComponent={
-                <div className="bg-white p-3 rounded-panel border border-mist-200 shadow-sm h-[420px] relative">
-                  <MapContainer
-                    center={[25.5, 93.0]}
-                    zoom={7}
-                    style={{ height: '100%', width: '100%', borderRadius: '8px' }}
-                    scrollWheelZoom={true}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-                      url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                    />
-
-                    {polylineCoords.length > 0 && (
-                      <Polyline
-                        positions={polylineCoords}
-                        pathOptions={{
-                          color: currentOption?.riskCategory === 'CRITICAL' ? '#C6403A' :
-                                 currentOption?.riskCategory === 'HIGH' ? '#D98A00' :
-                                 currentOption?.riskCategory === 'MEDIUM' ? '#B45309' : '#14597A',
-                          weight: 5,
-                          opacity: 0.85
-                        }}
-                      />
-                    )}
-
-                    {originNode && (
-                      <Marker position={[originNode.lat, originNode.lng]} icon={createNodeIcon(originNode.kind)}>
-                        <Popup>
-                          <div className="text-xs">
-                            <strong>Origin: {originNode.name}</strong>
-                            <div>Kind: {originNode.kind}</div>
-                          </div>
-                        </Popup>
-                      </Marker>
-                    )}
-
-                    {destNode && (
-                      <Marker position={[destNode.lat, destNode.lng]} icon={createNodeIcon(destNode.kind)}>
-                        <Popup>
-                          <div className="text-xs">
-                            <strong>Destination: {destNode.name}</strong>
-                            <div>Kind: {destNode.kind}</div>
-                          </div>
-                        </Popup>
-                      </Marker>
-                    )}
-                  </MapContainer>
-                </div>
-              }
+              originName={originNode?.name}
+              destName={destNode?.name}
+              selectedRouteGeometry={currentOption?.geometry}
+              riskCategory={currentOption?.riskCategory}
             />
 
             {/* Segment Breakdown */}
@@ -323,5 +259,5 @@ export const RoutePlannerPage: React.FC = () => {
         </div>
       )}
     </div>
-  );
-};
+  )
+}
