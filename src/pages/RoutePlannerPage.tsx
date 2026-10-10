@@ -7,6 +7,7 @@ import { getMapLocations, RoadNodeDto } from '../api/map';
 import { planRoutes, RouteOptionDto } from '../api/routes';
 import { Navigation, AlertTriangle, Route as RouteIcon, ShieldAlert, ArrowRight, RefreshCw } from 'lucide-react';
 import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
+import { GoogleDirectionsMap } from '../components/GoogleDirectionsMap';
 
 const createNodeIcon = (kind: string) => {
   const color = kind === 'HOSPITAL' ? '#C6403A' : kind === 'DEPOT' ? '#14597A' : '#4B5563';
@@ -246,56 +247,63 @@ export const RoutePlannerPage: React.FC = () => {
             })}
           </div>
 
-          {/* Interactive Map & Segment Breakdown */}
           <div className="lg:col-span-2 space-y-4">
-            <div className="bg-white p-3 rounded-panel border border-mist-200 shadow-sm h-[420px] relative">
-              <MapContainer
-                center={[25.5, 93.0]}
-                zoom={7}
-                style={{ height: '100%', width: '100%', borderRadius: '8px' }}
-                scrollWheelZoom={true}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-                  url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                />
+            <GoogleDirectionsMap
+              originLat={originNode?.lat}
+              originLng={originNode?.lng}
+              destLat={destNode?.lat}
+              destLng={destNode?.lng}
+              fallbackComponent={
+                <div className="bg-white p-3 rounded-panel border border-mist-200 shadow-sm h-[420px] relative">
+                  <MapContainer
+                    center={[25.5, 93.0]}
+                    zoom={7}
+                    style={{ height: '100%', width: '100%', borderRadius: '8px' }}
+                    scrollWheelZoom={true}
+                  >
+                    <TileLayer
+                      attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                      url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+                    />
 
-                {polylineCoords.length > 0 && (
-                  <Polyline
-                    positions={polylineCoords}
-                    pathOptions={{
-                      color: currentOption?.riskCategory === 'CRITICAL' ? '#C6403A' :
-                             currentOption?.riskCategory === 'HIGH' ? '#D98A00' :
-                             currentOption?.riskCategory === 'MEDIUM' ? '#B45309' : '#14597A',
-                      weight: 5,
-                      opacity: 0.85
-                    }}
-                  />
-                )}
+                    {polylineCoords.length > 0 && (
+                      <Polyline
+                        positions={polylineCoords}
+                        pathOptions={{
+                          color: currentOption?.riskCategory === 'CRITICAL' ? '#C6403A' :
+                                 currentOption?.riskCategory === 'HIGH' ? '#D98A00' :
+                                 currentOption?.riskCategory === 'MEDIUM' ? '#B45309' : '#14597A',
+                          weight: 5,
+                          opacity: 0.85
+                        }}
+                      />
+                    )}
 
-                {originNode && (
-                  <Marker position={[originNode.lat, originNode.lng]} icon={createNodeIcon(originNode.kind)}>
-                    <Popup>
-                      <div className="text-xs">
-                        <strong>Origin: {originNode.name}</strong>
-                        <div>Kind: {originNode.kind}</div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                )}
+                    {originNode && (
+                      <Marker position={[originNode.lat, originNode.lng]} icon={createNodeIcon(originNode.kind)}>
+                        <Popup>
+                          <div className="text-xs">
+                            <strong>Origin: {originNode.name}</strong>
+                            <div>Kind: {originNode.kind}</div>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    )}
 
-                {destNode && (
-                  <Marker position={[destNode.lat, destNode.lng]} icon={createNodeIcon(destNode.kind)}>
-                    <Popup>
-                      <div className="text-xs">
-                        <strong>Destination: {destNode.name}</strong>
-                        <div>Kind: {destNode.kind}</div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                )}
-              </MapContainer>
-            </div>
+                    {destNode && (
+                      <Marker position={[destNode.lat, destNode.lng]} icon={createNodeIcon(destNode.kind)}>
+                        <Popup>
+                          <div className="text-xs">
+                            <strong>Destination: {destNode.name}</strong>
+                            <div>Kind: {destNode.kind}</div>
+                          </div>
+                        </Popup>
+                      </Marker>
+                    )}
+                  </MapContainer>
+                </div>
+              }
+            />
 
             {/* Segment Breakdown */}
             {currentOption && (
