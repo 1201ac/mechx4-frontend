@@ -10,6 +10,7 @@
 - WP2 completed: fixed shipment route plan auto-generation (C1), simulator driver fix & ETA recovery (C2, C16), authenticated upload controller & auth image hook (C3), file upload magic byte validation (C4), dynamic cached RuleConfigService (C5), spec-compliant risk engine & 10min auto-recompute (C6, C7), status history restoration & 409 duplicate resolve guards (C8), field report status updates (C9), field report idempotent duplicate handling (C10), AFTER_COMMIT transactional SSE event stream (C11), driver-only shipment filter (C12), admin self-demotion/deactivation conflict guards (C15), UTF-8 token hashing (C18).
 - WP3 completed: ApiKeyAuthenticationFilter for X-API-Key (S1), query-param token support removed from JwtAuthenticationFilter (S2), LoginRateLimiter enforcing 5 max failed attempts per 15 min per IP returning 429 (S3), refresh token family rotation & reuse detection returning 401 (S4), CORS policy, CSP header & security headers with 401 entry point (S5), password policy enforcing 8+ chars with upper/lower/digit/special (S6), deactivated user check in JwtAuthenticationFilter returning 401 (S7), 500 error sanitization and ResponseStatusException handling (S8).
 - WP4 completed: search endpoint GET /api/search?q= (M1), weather log listing GET /api/weather/logs (M2), movement & emergency dashboards GET /api/dashboard/movement & /api/dashboard/emergency (M3), emergency mode settings GET|POST /api/settings/emergency (M4), notification broadcast POST /api/notifications/broadcast (M5), audit log service & paged GET /api/admin/audit (M6), road snap geometry POST /api/admin/roads/snap-geometry (M7).
+- WP5 completed: backend public config endpoint GET /api/public/config for Google Maps API key (G1), installed @googlemaps/js-api-loader, created GoogleDirectionsMap component and googleMapsLoader utility (G2), updated RoutePlannerPage to offer native Google Maps directions with fallback and step-by-step route cards, updated CSP headers for google maps domains.
 
 ## Blockers
 - None.
@@ -20,10 +21,10 @@
 - [x] WP2: Core correctness bugs
 - [x] WP3: Security
 - [x] WP4: Missing features
-- [ ] WP5: Route planning directly in Google Maps
+- [x] WP5: Route planning directly in Google Maps
 - [ ] WP6: Frontend per-role, realtime, offline, i18n, design
 - [ ] WP7: Proof: tests and audits
 - [ ] WP8: Docker, docs, final verification
 
 ## Notes
-- WP1, WP2, WP3 & WP4 complete and verified with check.mjs and verify.mjs (16/16 E2E tests passing). Starting WP5 Route planning directly in Google Maps.
+- WP1 through WP5 complete and verified with check.mjs and verify.mjs (16/16 E2E tests passing). Starting WP6.
