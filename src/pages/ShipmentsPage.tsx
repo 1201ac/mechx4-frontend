@@ -4,7 +4,8 @@ import { getShipments, createShipment, assignShipment, startShipment, deliverShi
 import { getVehicles } from '../api/vehicles';
 import { getMapLocations, RoadNodeDto } from '../api/map';
 import { useAuth } from '../context/AuthContext';
-import { Plus, RefreshCw, X, Play, CheckCircle2, Truck, User as UserIcon } from 'lucide-react';
+import { Plus, RefreshCw, X, Play, CheckCircle2, Truck, User as UserIcon, MapPin } from 'lucide-react';
+import { GoogleMapEmbed } from '../components/GoogleMapEmbed';
 
 export const ShipmentsPage: React.FC = () => {
   const { user } = useAuth();
@@ -15,6 +16,7 @@ export const ShipmentsPage: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [priorityFilter, setPriorityFilter] = useState<string>('');
   const [search, setSearch] = useState<string>('');
+  const [expandedMapId, setExpandedMapId] = useState<number | null>(null);
 
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [assignModalShipment, setAssignModalShipment] = useState<Shipment | null>(null);
@@ -288,6 +290,13 @@ export const ShipmentsPage: React.FC = () => {
 
                 {/* Actions */}
                 <div className="flex flex-wrap justify-end gap-2 pt-2 border-t border-mist-100">
+                  <button
+                    onClick={() => setExpandedMapId(expandedMapId === s.id ? null : s.id)}
+                    className="px-3 py-1.5 border border-mist-200 text-ink-700 hover:bg-mist-100 rounded-lg text-xs font-medium flex items-center gap-1 transition"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-river-600" />
+                    {expandedMapId === s.id ? 'Hide Map' : 'Google Maps View'}
+                  </button>
                   {isModeratorOrAdmin && (s.status === 'DRAFT' || !s.vehicle) && (
                     <button
                       onClick={() => {
@@ -330,6 +339,19 @@ export const ShipmentsPage: React.FC = () => {
                     </button>
                   )}
                 </div>
+
+                {expandedMapId === s.id && (
+                  <div className="pt-2">
+                    <GoogleMapEmbed
+                      originLat={s.originNode.lat}
+                      originLng={s.originNode.lng}
+                      destLat={s.destinationNode.lat}
+                      destLng={s.destinationNode.lng}
+                      height="220px"
+                      title={`Google Maps Driving Route - ${s.code} (${s.originNode.name} to ${s.destinationNode.name})`}
+                    />
+                  </div>
+                )}
               </div>
             );
           })}

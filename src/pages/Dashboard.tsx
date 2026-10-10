@@ -220,6 +220,16 @@ export const Dashboard: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* North Eastern Region Geographic Overview (Google Maps) */}
+          <div className="md:col-span-2 lg:col-span-3">
+            <GoogleMapEmbed
+              query="Guwahati, Assam, India"
+              zoom={7}
+              height="300px"
+              title="North Eastern Region Essential Logistics Corridors (Google Maps Overview)"
+            />
+          </div>
         </div>
       )}
 

@@ -178,14 +178,15 @@ export const DriverPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Google Maps Location View */}
+            {/* Google Maps Driving Route View */}
             <div className="pt-2">
               <GoogleMapEmbed
-                lat={activeShipment.destinationNode.lat}
-                lng={activeShipment.destinationNode.lng}
-                zoom={13}
-                height="220px"
-                title={`Google Maps Destination - ${activeShipment.destinationNode.name}`}
+                originLat={activeShipment.originNode.lat}
+                originLng={activeShipment.originNode.lng}
+                destLat={activeShipment.destinationNode.lat}
+                destLng={activeShipment.destinationNode.lng}
+                height="240px"
+                title={`Google Maps Driving Route - ${activeShipment.originNode.name} to ${activeShipment.destinationNode.name}`}
               />
             </div>
 

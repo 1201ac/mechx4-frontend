@@ -1,10 +1,16 @@
 import React from 'react';
-import { MapPin } from 'lucide-react';
+import { MapPin, Navigation } from 'lucide-react';
 
 interface GoogleMapEmbedProps {
   lat?: number | null;
   lng?: number | null;
   query?: string;
+  origin?: string;
+  destination?: string;
+  originLat?: number | null;
+  originLng?: number | null;
+  destLat?: number | null;
+  destLng?: number | null;
   zoom?: number;
   height?: string;
   title?: string;
@@ -15,14 +21,27 @@ export const GoogleMapEmbed: React.FC<GoogleMapEmbedProps> = ({
   lat,
   lng,
   query,
-  zoom = 13,
+  origin,
+  destination,
+  originLat,
+  originLng,
+  destLat,
+  destLng,
+  zoom = 12,
   height = '280px',
-  title = 'Google Maps Location View',
+  title = 'Google Maps View',
   className = '',
 }) => {
   let embedUrl = '';
+  let isRoute = false;
 
-  if (lat != null && lng != null && !isNaN(lat) && !isNaN(lng)) {
+  if (originLat != null && originLng != null && destLat != null && destLng != null && !isNaN(originLat) && !isNaN(originLng) && !isNaN(destLat) && !isNaN(destLng)) {
+    embedUrl = `https://maps.google.com/maps?saddr=${originLat},${originLng}&daddr=${destLat},${destLng}&output=embed`;
+    isRoute = true;
+  } else if (origin && destination) {
+    embedUrl = `https://maps.google.com/maps?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(destination)}&output=embed`;
+    isRoute = true;
+  } else if (lat != null && lng != null && !isNaN(lat) && !isNaN(lng)) {
     embedUrl = `https://maps.google.com/maps?q=${lat},${lng}&z=${zoom}&output=embed`;
   } else if (query && query.trim().length > 0) {
     embedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(query)}&z=${zoom}&output=embed`;
@@ -36,7 +55,7 @@ export const GoogleMapEmbed: React.FC<GoogleMapEmbedProps> = ({
       >
         <MapPin className="w-8 h-8 text-ink-400 mb-2" />
         <p className="text-sm font-medium">Location coordinates not available</p>
-        <p className="text-xs text-ink-400 mt-1">Select a record with valid geographic coordinates to preview Google Maps embed.</p>
+        <p className="text-xs text-ink-400 mt-1">Select valid location coordinates or route nodes to preview Google Maps.</p>
       </div>
     );
   }
@@ -45,11 +64,11 @@ export const GoogleMapEmbed: React.FC<GoogleMapEmbedProps> = ({
     <div className={`w-full overflow-hidden rounded-xl border border-mist-200 bg-white shadow-sm relative ${className}`}>
       <div className="bg-mist-50 px-3 py-1.5 border-b border-mist-200 flex items-center justify-between text-xs text-ink-600 font-medium">
         <span className="flex items-center gap-1.5 font-sans">
-          <MapPin className="w-3.5 h-3.5 text-river-600" />
+          {isRoute ? <Navigation className="w-3.5 h-3.5 text-tea-600" /> : <MapPin className="w-3.5 h-3.5 text-river-600" />}
           {title}
         </span>
         <span className="text-[10px] bg-river-600/10 text-river-700 px-1.5 py-0.5 rounded font-mono font-semibold">
-          Google Maps Embed
+          {isRoute ? 'Google Maps Driving Route' : 'Google Maps Embed'}
         </span>
       </div>
       <iframe

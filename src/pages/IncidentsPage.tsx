@@ -157,6 +157,16 @@ export const IncidentsPage: React.FC = () => {
             </select>
           </div>
 
+          {/* Active Incident Hotspot Google Maps Overview */}
+          <div className="mb-4">
+            <GoogleMapEmbed
+              query="Nagaon, Assam, India"
+              zoom={9}
+              height="220px"
+              title="Corridor Incident Hotspot Overview (Google Maps View)"
+            />
+          </div>
+
           {loadingIncidents ? (
             <div className="text-center py-12 text-ink-600">Loading incidents...</div>
           ) : incidentsData?.content.length === 0 ? (
