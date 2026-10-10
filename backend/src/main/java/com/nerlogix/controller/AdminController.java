@@ -44,15 +44,21 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{id}/role")
-    public ResponseEntity<UserDto> updateUserRole(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<UserDto> updateUserRole(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
         Role role = Role.valueOf(body.get("role"));
-        return ResponseEntity.ok(adminService.updateUserRole(id, role));
+        return ResponseEntity.ok(adminService.updateUserRole(id, role, currentUser));
     }
 
     @PatchMapping("/users/{id}/active")
-    public ResponseEntity<UserDto> updateUserActive(@PathVariable Long id, @RequestBody Map<String, Boolean> body) {
+    public ResponseEntity<UserDto> updateUserActive(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long id,
+            @RequestBody Map<String, Boolean> body) {
         boolean active = body.getOrDefault("active", true);
-        return ResponseEntity.ok(adminService.updateUserActive(id, active));
+        return ResponseEntity.ok(adminService.updateUserActive(id, active, currentUser));
     }
 
     @PostMapping("/users/{id}/reset-password")

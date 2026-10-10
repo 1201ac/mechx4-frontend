@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findByStatus(IncidentStatus status);
+    List<Incident> findByStatusNot(IncidentStatus status);
     List<Incident> findBySegmentIdAndStatus(Long segmentId, IncidentStatus status);
     List<Incident> findByTypeAndStatus(IncidentType type, IncidentStatus status);
+    List<Incident> findByTypeAndStatusNotAndCreatedAtAfter(IncidentType type, IncidentStatus status, java.time.LocalDateTime after);
 }

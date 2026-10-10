@@ -20,20 +20,20 @@
 | Map | `GET /api/map/weather` | Yes | Yes | Yes | Yes | Untested | Untested |
 | Roads | `GET /api/roads` | Yes | Yes | Yes | Yes | `gis-roads.spec.ts` | Working |
 | Roads | `GET /api/roads/{id}` | Yes | Yes | Yes | Yes | Untested | Untested |
-| Roads | `PATCH /api/roads/{id}/status` | No | Yes | Yes | Yes | `gis-roads.spec.ts` | Broken |
-| Routes | `POST /api/routes/plan` | Yes | Yes | Yes | Yes | `planner.spec.ts` | Broken |
-| Shipments | `GET /api/shipments` | Yes (own) | Yes | Yes | Yes | `shipments.spec.ts` | Broken |
-| Shipments | `GET /api/shipments/{id}` | Yes (own) | Yes | Yes | Yes | Untested | Broken |
+| Roads | `PATCH /api/roads/{id}/status` | No | Yes | Yes | Yes | `gis-roads.spec.ts` | Working |
+| Routes | `POST /api/routes/plan` | Yes | Yes | Yes | Yes | `planner.spec.ts` | Working |
+| Shipments | `GET /api/shipments` | Yes (own) | Yes | Yes | Yes | `shipments.spec.ts` | Working |
+| Shipments | `GET /api/shipments/{id}` | Yes (own) | Yes | Yes | Yes | Untested | Working |
 | Shipments | `POST /api/shipments` | No | Yes | Yes | Yes | `shipments.spec.ts` | Working |
 | Shipments | `PUT /api/shipments/{id}` | No | Yes | Yes | Yes | Untested | Untested |
 | Shipments | `DELETE /api/shipments/{id}` | No | Yes | Yes | Yes | Untested | Untested |
-| Shipments | `POST /api/shipments/{id}/assign` | No | Yes | Yes | Yes | `shipments.spec.ts` | Broken |
-| Shipments | `POST /api/shipments/{id}/start` | Driver | Yes | Yes | Yes | `driver.spec.ts` | Broken |
-| Shipments | `POST /api/shipments/{id}/pause` | No | Yes | Yes | Yes | Untested | Broken |
-| Shipments | `POST /api/shipments/{id}/deliver` | Driver | Yes | Yes | Yes | `driver.spec.ts` | Broken |
+| Shipments | `POST /api/shipments/{id}/assign` | No | Yes | Yes | Yes | `shipments.spec.ts` | Working |
+| Shipments | `POST /api/shipments/{id}/start` | Driver | Yes | Yes | Yes | `driver.spec.ts` | Working |
+| Shipments | `POST /api/shipments/{id}/pause` | No | Yes | Yes | Yes | Untested | Untested |
+| Shipments | `POST /api/shipments/{id}/deliver` | Driver | Yes | Yes | Yes | `driver.spec.ts` | Working |
 | Shipments | `POST /api/shipments/{id}/cancel` | No | Yes | Yes | Yes | Untested | Untested |
-| Shipments | `GET /api/shipments/{id}/route-proposal` | Driver | Yes | Yes | Yes | `driver.spec.ts` | Broken |
-| Shipments | `POST /api/shipments/{id}/route-proposal/accept` | Driver | Yes | Yes | Yes | `driver.spec.ts` | Broken |
+| Shipments | `GET /api/shipments/{id}/route-proposal` | Driver | Yes | Yes | Yes | `driver.spec.ts` | Working |
+| Shipments | `POST /api/shipments/{id}/route-proposal/accept` | Driver | Yes | Yes | Yes | `driver.spec.ts` | Working |
 | Shipments | `POST /api/shipments/{id}/route-proposal/reject` | Driver | Yes | Yes | Yes | Untested | Untested |
 | Vehicles | `GET /api/vehicles` | Yes | Yes | Yes | Yes | `shipments.spec.ts` | Working |
 | Vehicles | `GET /api/vehicles/{id}` | Yes | Yes | Yes | Yes | Untested | Untested |
@@ -41,23 +41,23 @@
 | Vehicles | `PUT /api/vehicles/{id}` | No | Yes | Yes | Yes | Untested | Untested |
 | Vehicles | `DELETE /api/vehicles/{id}` | No | Yes | Yes | Yes | Untested | Untested |
 | Vehicles | `GET /api/vehicles/{id}/trail` | Yes | Yes | Yes | Yes | Untested | Untested |
-| Vehicles | `POST /api/vehicles/me/position` | Driver | Yes | Yes | Yes | `driver.spec.ts` | Broken |
+| Vehicles | `POST /api/vehicles/me/position` | Driver | Yes | Yes | Yes | `driver.spec.ts` | Working |
 | Incidents | `GET /api/incidents` | Yes | Yes | Yes | Yes | `field-reports.spec.ts` | Working |
 | Incidents | `GET /api/incidents/{id}` | Yes | Yes | Yes | Yes | Untested | Untested |
 | Incidents | `POST /api/incidents` | Yes | Yes | Yes | Yes | Untested | Untested |
 | Incidents | `PATCH /api/incidents/{id}` | No | Yes | Yes | Yes | Untested | Untested |
-| Incidents | `POST /api/incidents/{id}/resolve` | No | Yes | Yes | Yes | Untested | Broken |
+| Incidents | `POST /api/incidents/{id}/resolve` | No | Yes | Yes | Yes | Untested | Working |
 | Incidents | `GET /api/incidents/{id}/events` | Yes | Yes | Yes | Yes | Untested | Untested |
 | Incidents | `GET /api/incidents/history` | Yes | Yes | Yes | Yes | `field-reports.spec.ts` | Working |
-| Field Reports | `POST /api/field-reports` | Yes | Yes | Yes | Yes | `field-reports.spec.ts` | Broken |
-| Field Reports | `GET /api/field-reports` | Yes (own) | Yes | Yes | Yes | `field-reports.spec.ts` | Broken |
-| Field Reports | `POST /api/field-reports/{id}/verify` | No | Yes | Yes | Yes | `pipeline.spec.ts` | Broken |
-| Field Reports | `POST /api/field-reports/{id}/reject` | No | Yes | Yes | Yes | Untested | Broken |
-| Uploads | `GET /api/uploads/{filename}` | Yes | Yes | Yes | No | None | Missing |
+| Field Reports | `POST /api/field-reports` | Yes | Yes | Yes | Yes | `field-reports.spec.ts` | Working |
+| Field Reports | `GET /api/field-reports` | Yes (own) | Yes | Yes | Yes | `field-reports.spec.ts` | Working |
+| Field Reports | `POST /api/field-reports/{id}/verify` | No | Yes | Yes | Yes | `pipeline.spec.ts` | Working |
+| Field Reports | `POST /api/field-reports/{id}/reject` | No | Yes | Yes | Yes | Untested | Working |
+| Uploads | `GET /api/uploads/{filename}` | Yes | Yes | Yes | Yes | `field-reports.spec.ts` | Working |
 | Weather | `GET /api/weather/districts` | Yes | Yes | Yes | Yes | `weather-risk.spec.ts` | Working |
 | Weather | `POST /api/weather/logs` | Yes | Yes | Yes | Yes | `weather-risk.spec.ts` | Working |
-| Weather | `GET /api/weather/logs` | Yes | Yes | Yes | No | None | Missing |
-| Alerts | `GET /api/alerts` | Yes | Yes | Yes | Yes | `pipeline.spec.ts` | Broken |
+| Weather | `GET /api/weather/logs` | Yes | Yes | Yes | No | None | Untested |
+| Alerts | `GET /api/alerts` | Yes | Yes | Yes | Yes | `pipeline.spec.ts` | Working |
 | Alerts | `POST /api/alerts/{id}/ack` | No | Yes | Yes | Yes | Untested | Untested |
 | Alerts | `POST /api/alerts/{id}/resolve` | No | Yes | Yes | Yes | Untested | Untested |
 | Notifications | `GET /api/notifications` | Yes | Yes | Yes | Yes | `pipeline.spec.ts` | Working |

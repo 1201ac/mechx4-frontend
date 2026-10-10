@@ -29,6 +29,7 @@ public class ShipmentController {
 
     @GetMapping
     public ResponseEntity<Page<ShipmentDto>> getShipments(
+            @AuthenticationPrincipal User currentUser,
             @RequestParam(required = false) ShipmentStatus status,
             @RequestParam(required = false) Long driverUserId,
             @RequestParam(required = false) CargoCategory cargoCategory,
@@ -41,12 +42,14 @@ public class ShipmentController {
         Sort sortObj = Sort.by(Sort.Direction.fromString(sort.length > 1 ? sort[1] : "desc"), sort[0]);
         Pageable pageable = PageRequest.of(page, size, sortObj);
 
-        return ResponseEntity.ok(shipmentService.getShipments(status, driverUserId, cargoCategory, priority, q, pageable));
+        return ResponseEntity.ok(shipmentService.getShipments(currentUser, status, driverUserId, cargoCategory, priority, q, pageable));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ShipmentDto> getShipmentById(@PathVariable Long id) {
-        return ResponseEntity.ok(shipmentService.getShipmentById(id));
+    public ResponseEntity<ShipmentDto> getShipmentById(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable Long id) {
+        return ResponseEntity.ok(shipmentService.getShipmentById(id, currentUser));
     }
 
     @PostMapping

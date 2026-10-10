@@ -124,6 +124,10 @@ public class IncidentService {
         Incident inc = incidentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Incident not found: " + id));
 
+        if (inc.getStatus() == IncidentStatus.RESOLVED) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT, "Incident #" + id + " is already RESOLVED");
+        }
+
         inc.setStatus(IncidentStatus.RESOLVED);
         inc.setResolvedAt(LocalDateTime.now());
         inc = incidentRepository.save(inc);
@@ -133,19 +137,29 @@ public class IncidentService {
         // Restore segment status if no other active incident on the segment
         RoadSegment seg = inc.getSegment();
         if (seg != null) {
-            List<Incident> remainingActive = incidentRepository.findAll().stream()
-                    .filter(i -> i.getSegment() != null && i.getSegment().getId().equals(seg.getId()))
-                    .filter(i -> i.getStatus() == IncidentStatus.VERIFIED || i.getStatus() == IncidentStatus.REPORTED)
-                    .toList();
+            List<Incident> remainingActive = incidentRepository.findBySegmentIdAndStatus(seg.getId(), IncidentStatus.VERIFIED);
 
             if (remainingActive.isEmpty()) {
-                // Restore to OPEN
                 SegmentStatus oldStatus = seg.getStatus();
-                seg.setStatus(SegmentStatus.OPEN);
-                seg.setStatusReason("Incident #" + inc.getId() + " resolved");
-                roadSegmentRepository.save(seg);
-                roadStatusHistoryRepository.save(new RoadStatusHistory(seg, oldStatus, SegmentStatus.OPEN, seg.getStatusReason(), moderator));
-                sseService.broadcast("road.updated", Map.of("segmentId", seg.getId(), "status", seg.getStatus()));
+                SegmentStatus restoredStatus = SegmentStatus.OPEN;
+
+                List<RoadStatusHistory> historyList = roadStatusHistoryRepository.findBySegmentIdOrderByChangedAtDesc(seg.getId());
+                if (!historyList.isEmpty()) {
+                    for (RoadStatusHistory hist : historyList) {
+                        if (hist.getOldStatus() != null && hist.getOldStatus() != SegmentStatus.BLOCKED && hist.getOldStatus() != SegmentStatus.RESTRICTED) {
+                            restoredStatus = hist.getOldStatus();
+                            break;
+                        }
+                    }
+                }
+
+                if (oldStatus != restoredStatus) {
+                    seg.setStatus(restoredStatus);
+                    seg.setStatusReason("Incident #" + inc.getId() + " resolved");
+                    roadSegmentRepository.save(seg);
+                    roadStatusHistoryRepository.save(new RoadStatusHistory(seg, oldStatus, restoredStatus, seg.getStatusReason(), moderator));
+                    sseService.broadcast("road.updated", Map.of("segmentId", seg.getId(), "status", seg.getStatus()));
+                }
             }
             riskEngine.computeSegmentRisk(seg);
         }

@@ -1,10 +1,12 @@
 package com.nerlogix.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nerlogix.dto.*;
 import com.nerlogix.entity.*;
 import com.nerlogix.exception.ResourceNotFoundException;
 import com.nerlogix.model.enums.*;
 import com.nerlogix.repository.*;
+import com.nerlogix.service.routing.RoutePlannerService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class ShipmentService {
@@ -26,8 +29,10 @@ public class ShipmentService {
     private final UserRepository userRepository;
     private final DistrictStockRepository districtStockRepository;
     private final RoutePlanRepository routePlanRepository;
+    private final RoutePlannerService routePlannerService;
     private final AuditLogService auditLogService;
     private final SseService sseService;
+    private final ObjectMapper objectMapper;
 
     public ShipmentService(
             ShipmentRepository shipmentRepository,
@@ -36,19 +41,24 @@ public class ShipmentService {
             UserRepository userRepository,
             DistrictStockRepository districtStockRepository,
             RoutePlanRepository routePlanRepository,
+            RoutePlannerService routePlannerService,
             AuditLogService auditLogService,
-            SseService sseService) {
+            SseService sseService,
+            ObjectMapper objectMapper) {
         this.shipmentRepository = shipmentRepository;
         this.roadNodeRepository = roadNodeRepository;
         this.vehicleRepository = vehicleRepository;
         this.userRepository = userRepository;
         this.districtStockRepository = districtStockRepository;
         this.routePlanRepository = routePlanRepository;
+        this.routePlannerService = routePlannerService;
         this.auditLogService = auditLogService;
         this.sseService = sseService;
+        this.objectMapper = objectMapper;
     }
 
     public Page<ShipmentDto> getShipments(
+            User currentUser,
             ShipmentStatus status,
             Long driverUserId,
             CargoCategory cargoCategory,
@@ -56,13 +66,18 @@ public class ShipmentService {
             String q,
             Pageable pageable) {
 
+        boolean isUserOnly = currentUser != null && currentUser.getRole() == Role.USER;
+        Long effectiveDriverId = isUserOnly ? currentUser.getId() : driverUserId;
+
         final String fQ = (q != null && !q.isBlank()) ? q.toLowerCase() : null;
 
-        Page<Shipment> page = shipmentRepository.findAll(pageable);
+        Page<Shipment> page = isUserOnly 
+                ? shipmentRepository.findByDriverUserId(effectiveDriverId, pageable)
+                : shipmentRepository.findAll(pageable);
 
         List<ShipmentDto> filtered = page.getContent().stream()
                 .filter(s -> status == null || s.getStatus() == status)
-                .filter(s -> driverUserId == null || (s.getDriverUser() != null && s.getDriverUser().getId().equals(driverUserId)))
+                .filter(s -> effectiveDriverId == null || (s.getDriverUser() != null && s.getDriverUser().getId().equals(effectiveDriverId)))
                 .filter(s -> cargoCategory == null || s.getCargoCategory() == cargoCategory)
                 .filter(s -> priority == null || s.getPriority() == priority)
                 .filter(s -> fQ == null || s.getCode().toLowerCase().contains(fQ) || (s.getCargoDescription() != null && s.getCargoDescription().toLowerCase().contains(fQ)))
@@ -72,9 +87,16 @@ public class ShipmentService {
         return new PageImpl<>(filtered, pageable, page.getTotalElements());
     }
 
-    public ShipmentDto getShipmentById(Long id) {
+    public ShipmentDto getShipmentById(Long id, User currentUser) {
         Shipment s = shipmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Shipment not found: " + id));
+
+        if (currentUser != null && currentUser.getRole() == Role.USER) {
+            if (s.getDriverUser() == null || !s.getDriverUser().getId().equals(currentUser.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied to shipment #" + id);
+            }
+        }
+
         return ShipmentDto.fromEntity(s);
     }
 
@@ -172,12 +194,68 @@ public class ShipmentService {
 
         Vehicle v = vehicleRepository.findById(req.vehicleId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found: " + req.vehicleId()));
+
+        List<Shipment> activeVehicleShipments = shipmentRepository.findByVehicleIdAndStatusIn(
+                v.getId(), List.of(ShipmentStatus.ASSIGNED, ShipmentStatus.IN_TRANSIT, ShipmentStatus.DELAYED));
+        for (Shipment active : activeVehicleShipments) {
+            if (!active.getId().equals(s.getId())) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Vehicle " + v.getRegNo() + " is already assigned to active shipment " + active.getCode());
+            }
+        }
+
         User driver = userRepository.findById(req.driverUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Driver user not found: " + req.driverUserId()));
+        if (!Boolean.TRUE.equals(driver.getActive())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Driver user is deactivated: " + driver.getEmail());
+        }
+
+        Optional<Shipment> activeDriverShipment = shipmentRepository.findByDriverUserIdAndStatusIn(
+                driver.getId(), List.of(ShipmentStatus.ASSIGNED, ShipmentStatus.IN_TRANSIT, ShipmentStatus.DELAYED));
+        if (activeDriverShipment.isPresent() && !activeDriverShipment.get().getId().equals(s.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Driver " + driver.getEmail() + " is already assigned to active shipment " + activeDriverShipment.get().getCode());
+        }
 
         s.setVehicle(v);
         s.setDriverUser(driver);
         s.setStatus(ShipmentStatus.ASSIGNED);
+
+        // Compute ACTIVE route plan
+        List<RouteOptionDto> routeOptions = routePlannerService.planRoutes(new RoutePlanRequest(
+                s.getOriginNode().getId(),
+                s.getDestinationNode().getId(),
+                v.getType(),
+                s.getPriority()
+        ));
+
+        if (routeOptions.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No safe route path available for origin and destination");
+        }
+
+        RouteOptionDto bestOption = routeOptions.get(0);
+
+        List<RoutePlan> activePlans = routePlanRepository.findByShipmentIdAndStatus(s.getId(), RoutePlanStatus.ACTIVE);
+        for (RoutePlan oldPlan : activePlans) {
+            oldPlan.setStatus(RoutePlanStatus.SUPERSEDED);
+            routePlanRepository.save(oldPlan);
+        }
+
+        RoutePlan plan = new RoutePlan();
+        plan.setShipment(s);
+        try {
+            plan.setSegmentIds(objectMapper.writeValueAsString(bestOption.segmentIds()));
+        } catch (Exception e) {
+            plan.setSegmentIds("[]");
+        }
+        plan.setGeometry(bestOption.geometry());
+        plan.setDistanceKm(bestOption.distanceKm());
+        plan.setEtaMin((double) bestOption.etaMinutes());
+        plan.setRiskScore(bestOption.riskScore());
+        plan.setStatus(RoutePlanStatus.ACTIVE);
+        plan.setReason(bestOption.reason());
+        routePlanRepository.save(plan);
+
+        s.setPlannedEta(LocalDateTime.now().plusMinutes(bestOption.etaMinutes()));
+        s.setCurrentEta(s.getPlannedEta());
 
         s = shipmentRepository.save(s);
         auditLogService.recordAudit(currentUser, "SHIPMENT_ASSIGNED", "SHIPMENT", s.getId(), "Assigned shipment " + s.getCode() + " to vehicle " + v.getRegNo(), "127.0.0.1");
@@ -198,6 +276,38 @@ public class ShipmentService {
 
         if (s.getVehicle() == null || s.getDriverUser() == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Starting shipment requires vehicle and driver assignment");
+        }
+
+        // If no ACTIVE plan exists, compute it now
+        Optional<RoutePlan> activePlanOpt = routePlanRepository.findFirstByShipmentIdAndStatusOrderByIdDesc(s.getId(), RoutePlanStatus.ACTIVE);
+        if (activePlanOpt.isEmpty()) {
+            List<RouteOptionDto> routeOptions = routePlannerService.planRoutes(new RoutePlanRequest(
+                    s.getOriginNode().getId(),
+                    s.getDestinationNode().getId(),
+                    s.getVehicle().getType(),
+                    s.getPriority()
+            ));
+            if (routeOptions.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "No safe route path available for origin and destination");
+            }
+            RouteOptionDto bestOption = routeOptions.get(0);
+            RoutePlan plan = new RoutePlan();
+            plan.setShipment(s);
+            try {
+                plan.setSegmentIds(objectMapper.writeValueAsString(bestOption.segmentIds()));
+            } catch (Exception e) {
+                plan.setSegmentIds("[]");
+            }
+            plan.setGeometry(bestOption.geometry());
+            plan.setDistanceKm(bestOption.distanceKm());
+            plan.setEtaMin((double) bestOption.etaMinutes());
+            plan.setRiskScore(bestOption.riskScore());
+            plan.setStatus(RoutePlanStatus.ACTIVE);
+            plan.setReason(bestOption.reason());
+            routePlanRepository.save(plan);
+
+            s.setPlannedEta(LocalDateTime.now().plusMinutes(bestOption.etaMinutes()));
+            s.setCurrentEta(s.getPlannedEta());
         }
 
         s.setStatus(ShipmentStatus.IN_TRANSIT);
@@ -318,7 +428,6 @@ public class ShipmentService {
         RoutePlan proposed = routePlanRepository.findFirstByShipmentIdAndStatusOrderByIdDesc(shipmentId, RoutePlanStatus.PROPOSED)
                 .orElseThrow(() -> new ResourceNotFoundException("No proposed route plan found for shipment " + shipmentId));
 
-        // Supersede all current active routes for this shipment
         List<RoutePlan> activePlans = routePlanRepository.findByShipmentIdAndStatus(shipmentId, RoutePlanStatus.ACTIVE);
         for (RoutePlan active : activePlans) {
             active.setStatus(RoutePlanStatus.SUPERSEDED);
@@ -328,7 +437,6 @@ public class ShipmentService {
         proposed.setStatus(RoutePlanStatus.ACTIVE);
         RoutePlan saved = routePlanRepository.save(proposed);
 
-        // Update shipment ETA
         if (proposed.getEtaMin() != null) {
             s.setCurrentEta(LocalDateTime.now().plusMinutes(Math.round(proposed.getEtaMin())));
             shipmentRepository.save(s);

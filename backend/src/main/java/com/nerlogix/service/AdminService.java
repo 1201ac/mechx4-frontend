@@ -5,12 +5,15 @@ import com.nerlogix.entity.*;
 import com.nerlogix.exception.ResourceNotFoundException;
 import com.nerlogix.model.enums.Role;
 import com.nerlogix.repository.*;
+import com.nerlogix.service.risk.RiskEngine;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -24,23 +27,32 @@ public class AdminService {
     private final UserRepository userRepository;
     private final AuditLogRepository auditLogRepository;
     private final RuleConfigRepository ruleConfigRepository;
+    private final RuleConfigService ruleConfigService;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final ApiKeyRepository apiKeyRepository;
     private final PasswordEncoder passwordEncoder;
     private final SeedService seedService;
+    private final RiskEngine riskEngine;
 
     public AdminService(
             UserRepository userRepository,
             AuditLogRepository auditLogRepository,
             RuleConfigRepository ruleConfigRepository,
+            RuleConfigService ruleConfigService,
+            RefreshTokenRepository refreshTokenRepository,
             ApiKeyRepository apiKeyRepository,
             PasswordEncoder passwordEncoder,
-            SeedService seedService) {
+            SeedService seedService,
+            RiskEngine riskEngine) {
         this.userRepository = userRepository;
         this.auditLogRepository = auditLogRepository;
         this.ruleConfigRepository = ruleConfigRepository;
+        this.ruleConfigService = ruleConfigService;
+        this.refreshTokenRepository = refreshTokenRepository;
         this.apiKeyRepository = apiKeyRepository;
         this.passwordEncoder = passwordEncoder;
         this.seedService = seedService;
+        this.riskEngine = riskEngine;
     }
 
     public Page<UserDto> getUsers(Pageable pageable) {
@@ -50,20 +62,46 @@ public class AdminService {
     }
 
     @Transactional
-    public UserDto updateUserRole(Long userId, Role role) {
+    public UserDto updateUserRole(Long userId, Role role, User currentUser) {
         User u = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        if (currentUser != null && u.getId().equals(currentUser.getId()) && role != Role.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot demote your own admin account");
+        }
+
+        if (u.getRole() == Role.ADMIN && role != Role.ADMIN) {
+            long activeAdminCount = userRepository.countByRoleAndActive(Role.ADMIN, true);
+            if (activeAdminCount <= 1) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot demote the last active admin user");
+            }
+        }
+
         u.setRole(role);
         u = userRepository.save(u);
+        refreshTokenRepository.deleteByUser(u);
         return UserDto.fromEntity(u);
     }
 
     @Transactional
-    public UserDto updateUserActive(Long userId, boolean active) {
+    public UserDto updateUserActive(Long userId, boolean active, User currentUser) {
         User u = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
+
+        if (currentUser != null && u.getId().equals(currentUser.getId()) && !active) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot deactivate your own admin account");
+        }
+
+        if (u.getRole() == Role.ADMIN && !active) {
+            long activeAdminCount = userRepository.countByRoleAndActive(Role.ADMIN, true);
+            if (activeAdminCount <= 1) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot deactivate the last active admin user");
+            }
+        }
+
         u.setActive(active);
         u = userRepository.save(u);
+        refreshTokenRepository.deleteByUser(u);
         return UserDto.fromEntity(u);
     }
 
@@ -73,6 +111,7 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + userId));
         u.setPasswordHash(passwordEncoder.encode(newPassword));
         userRepository.save(u);
+        refreshTokenRepository.deleteByUser(u);
     }
 
     public Page<AuditLog> getAuditLogs(Pageable pageable) {
@@ -80,15 +119,15 @@ public class AdminService {
     }
 
     public List<RuleConfig> getRuleConfigs() {
-        return ruleConfigRepository.findAll();
+        return ruleConfigService.getAllRules();
     }
 
     @Transactional
     public RuleConfig updateRuleConfig(String key, String value) {
-        RuleConfig cfg = ruleConfigRepository.findByConfigKey(key)
-                .orElseGet(() -> new RuleConfig(key, value, "Custom rule configuration"));
-        cfg.setConfigValue(value);
-        return ruleConfigRepository.save(cfg);
+        ruleConfigService.updateRules(Map.of(key, value));
+        riskEngine.recomputeAll();
+        return ruleConfigRepository.findByConfigKey(key)
+                .orElseThrow(() -> new ResourceNotFoundException("Rule not found: " + key));
     }
 
     public List<Map<String, Object>> getApiKeys() {

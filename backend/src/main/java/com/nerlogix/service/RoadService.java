@@ -32,6 +32,7 @@ public class RoadService {
     private final RoadStatusHistoryRepository roadStatusHistoryRepository;
     private final AuditLogService auditLogService;
     private final ApplicationEventPublisher eventPublisher;
+    private final com.nerlogix.service.risk.RiskEngine riskEngine;
     private final ObjectMapper objectMapper;
 
     public RoadService(
@@ -39,11 +40,13 @@ public class RoadService {
             RoadStatusHistoryRepository roadStatusHistoryRepository,
             AuditLogService auditLogService,
             ApplicationEventPublisher eventPublisher,
+            com.nerlogix.service.risk.RiskEngine riskEngine,
             ObjectMapper objectMapper) {
         this.roadSegmentRepository = roadSegmentRepository;
         this.roadStatusHistoryRepository = roadStatusHistoryRepository;
         this.auditLogService = auditLogService;
         this.eventPublisher = eventPublisher;
+        this.riskEngine = riskEngine;
         this.objectMapper = objectMapper;
     }
 
@@ -180,6 +183,8 @@ public class RoadService {
                 newStatus,
                 reason
         ));
+
+        riskEngine.computeSegmentRisk(segment);
 
         return toDto(segment);
     }

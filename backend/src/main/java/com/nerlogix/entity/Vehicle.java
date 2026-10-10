@@ -41,6 +41,9 @@ public class Vehicle {
     @Column(name = "last_seen", nullable = false)
     private LocalDateTime lastSeen = LocalDateTime.now();
 
+    @Column(name = "last_driver_fix_at")
+    private LocalDateTime lastDriverFixAt;
+
     public Vehicle() {}
 
     public Vehicle(String regNo, VehicleType type, Double capacityKg, Double lat, Double lng) {
@@ -80,4 +83,7 @@ public class Vehicle {
 
     public LocalDateTime getLastSeen() { return lastSeen; }
     public void setLastSeen(LocalDateTime lastSeen) { this.lastSeen = lastSeen; }
+
+    public LocalDateTime getLastDriverFixAt() { return lastDriverFixAt; }
+    public void setLastDriverFixAt(LocalDateTime lastDriverFixAt) { this.lastDriverFixAt = lastDriverFixAt; }
 }

@@ -11,9 +11,11 @@ import com.nerlogix.model.enums.SegmentStatus;
 import com.nerlogix.model.enums.WeatherCondition;
 import com.nerlogix.repository.*;
 import com.nerlogix.service.AlertService;
+import com.nerlogix.service.RuleConfigService;
 import com.nerlogix.util.GeoUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ public class DefaultRiskEngine implements RiskEngine {
     private final IncidentRepository incidentRepository;
     private final DistrictRepository districtRepository;
     private final AlertService alertService;
+    private final RuleConfigService ruleConfigService;
     private final ObjectMapper objectMapper;
 
     public DefaultRiskEngine(
@@ -40,12 +43,14 @@ public class DefaultRiskEngine implements RiskEngine {
             IncidentRepository incidentRepository,
             DistrictRepository districtRepository,
             AlertService alertService,
+            RuleConfigService ruleConfigService,
             ObjectMapper objectMapper) {
         this.roadSegmentRepository = roadSegmentRepository;
         this.weatherLogRepository = weatherLogRepository;
         this.incidentRepository = incidentRepository;
         this.districtRepository = districtRepository;
         this.alertService = alertService;
+        this.ruleConfigService = ruleConfigService;
         this.objectMapper = objectMapper;
     }
 
@@ -55,14 +60,17 @@ public class DefaultRiskEngine implements RiskEngine {
         List<RiskFactorDto> factors = new ArrayList<>();
         double totalScore = 0.0;
 
+        int blockedScore = ruleConfigService.getInt("risk.status.blocked_score", 100);
+        int restrictedBonus = ruleConfigService.getInt("risk.status.restricted_bonus", 15);
+
         // Status Override Check
         if (segment.getStatus() == SegmentStatus.BLOCKED) {
-            factors.add(new RiskFactorDto("Status: BLOCKED override", 100));
-            saveSegmentRisk(segment, 100.0, factors);
-            return new RiskCalculationResult(100.0, factors);
+            factors.add(new RiskFactorDto("Status: BLOCKED override", blockedScore));
+            saveSegmentRisk(segment, (double) blockedScore, factors);
+            return new RiskCalculationResult((double) blockedScore, factors);
         } else if (segment.getStatus() == SegmentStatus.RESTRICTED) {
-            factors.add(new RiskFactorDto("Status: RESTRICTED override", 15));
-            totalScore += 15.0;
+            factors.add(new RiskFactorDto("Status: RESTRICTED override", restrictedBonus));
+            totalScore += restrictedBonus;
         }
 
         // 1. Weather / Rainfall
@@ -73,9 +81,10 @@ public class DefaultRiskEngine implements RiskEngine {
 
         WeatherCondition latestCond = WeatherCondition.NONE;
         Double latestRainMm = 0.0;
+        List<WeatherLog> logs = List.of();
 
         if (district != null) {
-            List<WeatherLog> logs = weatherLogRepository.findByDistrictIdOrderByLoggedAtDesc(district.getId());
+            logs = weatherLogRepository.findByDistrictIdOrderByLoggedAtDesc(district.getId());
             if (!logs.isEmpty()) {
                 WeatherLog latestLog = logs.get(0);
                 latestCond = latestLog.getCondition() != null ? latestLog.getCondition() : WeatherCondition.NONE;
@@ -83,83 +92,125 @@ public class DefaultRiskEngine implements RiskEngine {
             }
         }
 
+        int pLight = ruleConfigService.getInt("risk.rainfall.light", 5);
+        int pMod = ruleConfigService.getInt("risk.rainfall.moderate", 12);
+        int pHeavy = ruleConfigService.getInt("risk.rainfall.heavy", 22);
+        int pExtreme = ruleConfigService.getInt("risk.rainfall.extreme", 30);
+        int p72hBonus = ruleConfigService.getInt("risk.rainfall.72h_bonus", 5);
+
         int rainPoints = 0;
         if (latestRainMm >= 100.0 || latestCond == WeatherCondition.EXTREME) {
-            rainPoints = 30;
-            factors.add(new RiskFactorDto("Extreme rainfall / storm", 30));
+            rainPoints = pExtreme;
+            factors.add(new RiskFactorDto("Extreme rainfall / storm (>=100mm 24h)", pExtreme));
         } else if (latestCond == WeatherCondition.HEAVY) {
-            rainPoints = 22;
-            factors.add(new RiskFactorDto("Heavy monsoon rainfall", 22));
+            rainPoints = pHeavy;
+            factors.add(new RiskFactorDto("Heavy monsoon rainfall", pHeavy));
         } else if (latestCond == WeatherCondition.MODERATE) {
-            rainPoints = 12;
-            factors.add(new RiskFactorDto("Moderate rainfall", 12));
+            rainPoints = pMod;
+            factors.add(new RiskFactorDto("Moderate rainfall", pMod));
         } else if (latestCond == WeatherCondition.LIGHT) {
-            rainPoints = 5;
-            factors.add(new RiskFactorDto("Light rainfall", 5));
+            rainPoints = pLight;
+            factors.add(new RiskFactorDto("Light rainfall", pLight));
         }
         totalScore += rainPoints;
 
-        // 72h total rainfall bonus
-        if (district != null) {
+        // 72h total rainfall bonus: 72h total >= 150mm OR 72h condition average/max is HEAVY/EXTREME
+        if (district != null && !logs.isEmpty()) {
             LocalDateTime cutoff = LocalDateTime.now().minusHours(72);
-            Double total72hRain = weatherLogRepository.findByDistrictIdOrderByLoggedAtDesc(district.getId()).stream()
+            List<WeatherLog> logs72h = logs.stream()
                     .filter(w -> w.getLoggedAt() != null && w.getLoggedAt().isAfter(cutoff))
+                    .toList();
+
+            double total72hRain = logs72h.stream()
                     .mapToDouble(w -> w.getRainMm() != null ? w.getRainMm() : 0.0)
                     .sum();
-            if (total72hRain >= 150.0) {
-                factors.add(new RiskFactorDto("High 72-hour cumulative saturation (+150mm)", 5));
-                totalScore += 5.0;
+            boolean hasHeavy72h = logs72h.stream().anyMatch(w -> w.getCondition() == WeatherCondition.HEAVY || w.getCondition() == WeatherCondition.EXTREME);
+
+            if (total72hRain >= 150.0 || hasHeavy72h) {
+                factors.add(new RiskFactorDto("High 72-hour cumulative saturation", p72hBonus));
+                totalScore += p72hBonus;
             }
         }
 
         // 2. Terrain & Prone Factors
-        int terrainPoints = Math.min(15, (segment.getTerrainClass() != null ? segment.getTerrainClass() : 1) * 3);
-        factors.add(new RiskFactorDto("Steep hill terrain class " + segment.getTerrainClass(), terrainPoints));
+        int tMult = ruleConfigService.getInt("risk.terrain.multiplier", 3);
+        int tMax = ruleConfigService.getInt("risk.terrain.max", 15);
+        int pLandslide = ruleConfigService.getInt("risk.terrain.landslide_bonus", 8);
+        int pFlood = ruleConfigService.getInt("risk.terrain.flood_bonus", 8);
+
+        int terrainClass = segment.getTerrainClass() != null ? segment.getTerrainClass() : 1;
+        int terrainPoints = Math.min(tMax, terrainClass * tMult);
+        factors.add(new RiskFactorDto("Steep hill terrain class " + terrainClass, terrainPoints));
         totalScore += terrainPoints;
 
         if (Boolean.TRUE.equals(segment.getLandslideProne()) && latestCond != WeatherCondition.NONE) {
-            factors.add(new RiskFactorDto("Landslide-prone corridor during rainfall", 8));
-            totalScore += 8.0;
+            factors.add(new RiskFactorDto("Landslide-prone corridor during rainfall", pLandslide));
+            totalScore += pLandslide;
         }
 
         if (Boolean.TRUE.equals(segment.getFloodProne()) && (latestCond == WeatherCondition.MODERATE || latestCond == WeatherCondition.HEAVY || latestCond == WeatherCondition.EXTREME)) {
-            factors.add(new RiskFactorDto("Flood-prone river basin during heavy rain", 8));
-            totalScore += 8.0;
+            factors.add(new RiskFactorDto("Flood-prone river basin during heavy rain", pFlood));
+            totalScore += pFlood;
         }
 
-        // 3. Nearby Incidents within 15km
+        // 3. Nearby Incidents within radius
+        double radiusKm = ruleConfigService.getDouble("risk.incident.radius_km", 15.0);
+        int incMult = ruleConfigService.getInt("risk.incident.severity_multiplier", 4);
+        int incMax = ruleConfigService.getInt("risk.incident.max", 25);
+        int pCongestion = ruleConfigService.getInt("risk.congestion.bonus", 10);
+
         double midLat = (segment.getFromNode().getLat() + segment.getToNode().getLat()) / 2.0;
         double midLng = (segment.getFromNode().getLng() + segment.getToNode().getLng()) / 2.0;
 
-        List<Incident> openIncidents = incidentRepository.findByStatus(IncidentStatus.VERIFIED);
+        List<Incident> openIncidents = incidentRepository.findByStatusNot(IncidentStatus.RESOLVED);
         int incidentPoints = 0;
-        boolean hasCongestion = false;
+        boolean hasCongestionIncident = false;
 
         for (Incident inc : openIncidents) {
+            if (inc.getStatus() == IncidentStatus.REJECTED) continue;
+
             double dist = GeoUtils.haversineDistanceKm(midLat, midLng, inc.getLat(), inc.getLng());
-            if (dist <= 15.0) {
-                int pts = (inc.getSeverity() != null ? inc.getSeverity() : 1) * 4;
+            if (dist <= radiusKm) {
+                int pts = (inc.getSeverity() != null ? inc.getSeverity() : 1) * incMult;
                 incidentPoints += pts;
                 factors.add(new RiskFactorDto("Active verified incident nearby: " + inc.getType() + " (" + Math.round(dist) + " km)", pts));
             }
             if (inc.getSegment() != null && inc.getSegment().getId().equals(segment.getId()) && inc.getType() == IncidentType.CONGESTION) {
-                hasCongestion = true;
+                hasCongestionIncident = true;
             }
         }
-        incidentPoints = Math.min(25, incidentPoints);
+        incidentPoints = Math.min(incMax, incidentPoints);
         totalScore += incidentPoints;
 
-        if (hasCongestion || (segment.getStatusReason() != null && segment.getStatusReason().toLowerCase().contains("congestion"))) {
-            factors.add(new RiskFactorDto("Congestion bottleneck active", 10));
-            totalScore += 10.0;
+        if (hasCongestionIncident || (segment.getStatusReason() != null && segment.getStatusReason().toLowerCase().contains("congestion"))) {
+            factors.add(new RiskFactorDto("Congestion bottleneck active", pCongestion));
+            totalScore += pCongestion;
+        }
+
+        // 4. Disruption history (+2 per RESOLVED incident in last 90 days, max 8)
+        int pDisruption = ruleConfigService.getInt("risk.disruption.per_incident", 2);
+        int pDisruptionMax = ruleConfigService.getInt("risk.disruption.max", 8);
+        int disruptionDays = ruleConfigService.getInt("risk.disruption.days", 90);
+
+        List<Incident> resolvedIncidents = incidentRepository.findBySegmentIdAndStatus(segment.getId(), IncidentStatus.RESOLVED);
+        LocalDateTime historyCutoff = LocalDateTime.now().minusDays(disruptionDays);
+        long recentResolvedCount = resolvedIncidents.stream()
+                .filter(i -> i.getResolvedAt() != null && i.getResolvedAt().isAfter(historyCutoff))
+                .count();
+
+        if (recentResolvedCount > 0) {
+            int disruptionPoints = Math.min(pDisruptionMax, (int) (recentResolvedCount * pDisruption));
+            factors.add(new RiskFactorDto(String.format("Disruption history (%d resolved incidents in 90d)", recentResolvedCount), disruptionPoints));
+            totalScore += disruptionPoints;
         }
 
         // Clamping to 0-100
         double finalScore = Math.min(100.0, Math.max(0.0, totalScore));
         saveSegmentRisk(segment, finalScore, factors);
 
-        // Check if High Risk Corridor alert should be created
-        if (finalScore >= 60.0 && segment.getStatus() != SegmentStatus.BLOCKED) {
+        // Check High Risk Alert threshold
+        double alertThreshold = ruleConfigService.getDouble("alert.high_risk.threshold", 60.0);
+        if (finalScore >= alertThreshold && segment.getStatus() != SegmentStatus.BLOCKED) {
             String openKey = "HIGH_RISK_CORRIDOR:" + segment.getId();
             alertService.createOrUpdateAlert(
                     AlertType.HIGH_RISK_CORRIDOR,
@@ -180,7 +231,7 @@ public class DefaultRiskEngine implements RiskEngine {
                             "bn", String.format("করিডোর %s এ উচ্চ ঝুঁকির স্কোর (%d/100) রেকর্ড করা হয়েছে।", segment.getName(), Math.round(finalScore))
                     )
             );
-        } else if (finalScore < 60.0) {
+        } else if (finalScore < alertThreshold) {
             alertService.resolveAlertByOpenKey("HIGH_RISK_CORRIDOR:" + segment.getId());
         }
 
@@ -205,7 +256,7 @@ public class DefaultRiskEngine implements RiskEngine {
                 weightedUsableShare += 1.0;
             } else if (s.getStatus() == SegmentStatus.RESTRICTED) {
                 weightedUsableShare += 0.5;
-            } // BLOCKED = 0.0
+            }
 
             totalRiskSum += (s.getRiskScore() != null ? s.getRiskScore() : 0.0);
         }
@@ -215,7 +266,6 @@ public class DefaultRiskEngine implements RiskEngine {
 
         double finalScore = Math.max(0.0, baseUsability - (avgRisk * 0.3));
 
-        // If all access segments are BLOCKED, district is INACCESSIBLE
         boolean allBlocked = accessSegments.stream().allMatch(s -> s.getStatus() == SegmentStatus.BLOCKED);
         if (allBlocked) return 0.0;
 
@@ -237,6 +287,7 @@ public class DefaultRiskEngine implements RiskEngine {
 
     @Override
     @Transactional
+    @Scheduled(fixedDelay = 600000) // 10 minutes scheduled recompute (C7)
     public void recomputeAll() {
         List<RoadSegment> segments = roadSegmentRepository.findAll();
         for (RoadSegment s : segments) {

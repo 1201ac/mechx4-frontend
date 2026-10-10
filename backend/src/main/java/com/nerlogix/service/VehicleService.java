@@ -145,6 +145,7 @@ public class VehicleService {
             if (req.heading() != null) vehicle.setHeading(req.heading());
             if (req.speedKmph() != null) vehicle.setSpeedKmph(req.speedKmph());
             vehicle.setLastSeen(timestamp);
+            vehicle.setLastDriverFixAt(LocalDateTime.now());
 
             VehiclePosition pos = new VehiclePosition(vehicle, req.lat(), req.lng(), req.heading() != null ? req.heading() : 0.0, req.speedKmph() != null ? req.speedKmph() : 0.0);
             pos.setRecordedAt(timestamp);

@@ -1,6 +1,6 @@
 package com.nerlogix.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nerlogix.config.NerlogixProperties;
 import com.nerlogix.dto.FieldReportDto;
 import com.nerlogix.dto.FieldReportPayload;
 import com.nerlogix.entity.*;
@@ -9,15 +9,19 @@ import com.nerlogix.model.enums.*;
 import com.nerlogix.repository.*;
 import com.nerlogix.service.risk.RiskEngine;
 import com.nerlogix.util.GeoUtils;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -34,6 +38,7 @@ public class FieldReportService {
     private final AuditLogService auditLogService;
     private final RiskEngine riskEngine;
     private final SseService sseService;
+    private final NerlogixProperties nerlogixProperties;
 
     public FieldReportService(
             FieldReportRepository fieldReportRepository,
@@ -45,7 +50,8 @@ public class FieldReportService {
             DistrictRepository districtRepository,
             AuditLogService auditLogService,
             RiskEngine riskEngine,
-            SseService sseService) {
+            SseService sseService,
+            NerlogixProperties nerlogixProperties) {
         this.fieldReportRepository = fieldReportRepository;
         this.reportImageRepository = reportImageRepository;
         this.incidentRepository = incidentRepository;
@@ -56,6 +62,7 @@ public class FieldReportService {
         this.auditLogService = auditLogService;
         this.riskEngine = riskEngine;
         this.sseService = sseService;
+        this.nerlogixProperties = nerlogixProperties;
     }
 
     @Transactional
@@ -65,6 +72,10 @@ public class FieldReportService {
             FieldReport r = existing.get();
             List<ReportImage> rImages = reportImageRepository.findByFieldReportId(r.getId());
             return Map.of("duplicate", true, "report", FieldReportDto.fromEntity(r, rImages));
+        }
+
+        if (images != null && images.size() > 5) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "Maximum 5 images allowed per report");
         }
 
         FieldReport fr = new FieldReport();
@@ -79,10 +90,20 @@ public class FieldReportService {
         fr.setNote(payload.note());
         fr.setStatus(ReportStatus.PENDING);
 
-        fr = fieldReportRepository.save(fr);
+        try {
+            fr = fieldReportRepository.save(fr);
+        } catch (DataIntegrityViolationException ex) {
+            Optional<FieldReport> dup = fieldReportRepository.findByClientId(payload.clientId());
+            if (dup.isPresent()) {
+                FieldReport r = dup.get();
+                List<ReportImage> rImages = reportImageRepository.findByFieldReportId(r.getId());
+                return Map.of("duplicate", true, "report", FieldReportDto.fromEntity(r, rImages));
+            }
+            throw ex;
+        }
 
         List<ReportImage> reportImages = new ArrayList<>();
-        File uploadFolder = new File("./uploads");
+        File uploadFolder = new File(nerlogixProperties.getUploads().getDir());
         if (!uploadFolder.exists()) {
             uploadFolder.mkdirs();
         }
@@ -90,13 +111,13 @@ public class FieldReportService {
         if (images != null && !images.isEmpty()) {
             for (MultipartFile file : images) {
                 if (file.isEmpty()) continue;
-                String ext = getExtension(file.getOriginalFilename());
+                String ext = validateAndGetExtension(file);
                 String filename = "report_" + UUID.randomUUID() + ext;
                 File targetFile = new File(uploadFolder, filename);
                 try (FileOutputStream fos = new FileOutputStream(targetFile)) {
                     fos.write(file.getBytes());
                 } catch (Exception e) {
-                    throw new RuntimeException("Failed to save image file: " + e.getMessage());
+                    throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to save image file: " + e.getMessage());
                 }
                 ReportImage img = reportImageRepository.save(new ReportImage(fr, "/api/uploads/" + filename));
                 reportImages.add(img);
@@ -130,10 +151,13 @@ public class FieldReportService {
         FieldReport fr = fieldReportRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Field report not found: " + id));
 
+        if (fr.getStatus() != ReportStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Report is already " + fr.getStatus());
+        }
+
         fr.setStatus(ReportStatus.VERIFIED);
         fr.setModeratorNote(moderatorNote);
 
-        // Find nearest segment and district
         RoadSegment nearestSeg = findNearestSegment(fr.getLat(), fr.getLng());
         District nearestDist = findNearestDistrict(fr.getLat(), fr.getLng());
 
@@ -141,11 +165,11 @@ public class FieldReportService {
         final double reportLat = fr.getLat();
         final double reportLng = fr.getLng();
 
-        // Check for merge within 2km & 6h
-        List<Incident> openIncidents = incidentRepository.findAll().stream()
-                .filter(i -> i.getStatus() != IncidentStatus.RESOLVED && i.getStatus() != IncidentStatus.REJECTED)
-                .filter(i -> i.getType() == reportType)
-                .filter(i -> i.getCreatedAt().isAfter(LocalDateTime.now().minusHours(6)))
+        List<Incident> candidateIncidents = incidentRepository.findByTypeAndStatusNotAndCreatedAtAfter(
+                reportType, IncidentStatus.RESOLVED, LocalDateTime.now().minusHours(6)
+        );
+        List<Incident> openIncidents = candidateIncidents.stream()
+                .filter(i -> i.getStatus() != IncidentStatus.REJECTED)
                 .filter(i -> GeoUtils.haversineDistanceKm(i.getLat(), i.getLng(), reportLat, reportLng) <= 2.0)
                 .toList();
 
@@ -155,7 +179,11 @@ public class FieldReportService {
             if (fr.getSeverity() > incident.getSeverity()) {
                 incident.setSeverity(fr.getSeverity());
             }
-            incident.setDescription(incident.getDescription() + " | Verified report: " + fr.getNote());
+            String newDesc = incident.getDescription() + " | Verified report: " + (fr.getNote() != null ? fr.getNote() : "");
+            if (newDesc.length() > 500) {
+                newDesc = newDesc.substring(0, 497) + "...";
+            }
+            incident.setDescription(newDesc);
             incident = incidentRepository.save(incident);
         } else {
             incident = new Incident();
@@ -165,7 +193,9 @@ public class FieldReportService {
             incident.setLng(fr.getLng());
             incident.setSegment(nearestSeg);
             incident.setDistrict(nearestDist);
-            incident.setDescription("Verified field report: " + fr.getNote());
+            String desc = "Verified field report: " + (fr.getNote() != null ? fr.getNote() : "");
+            if (desc.length() > 500) desc = desc.substring(0, 497) + "...";
+            incident.setDescription(desc);
             incident.setStatus(IncidentStatus.VERIFIED);
             incident.setSource(IncidentSource.FIELD);
             incident.setReportId(fr.getId());
@@ -178,13 +208,14 @@ public class FieldReportService {
 
         incidentEventRepository.save(new IncidentEvent(incident, "VERIFIED", moderator, moderatorNote != null ? moderatorNote : "Report verified by moderator"));
 
-        // Status rules
+        // Status rules based on max severity of merged incident
+        int maxSeverity = incident.getSeverity();
         if (nearestSeg != null) {
             SegmentStatus oldStatus = nearestSeg.getStatus();
-            if (fr.getSeverity() == 3 && oldStatus != SegmentStatus.BLOCKED) {
+            if (maxSeverity == 3 && oldStatus != SegmentStatus.BLOCKED) {
                 nearestSeg.setStatus(SegmentStatus.RESTRICTED);
                 nearestSeg.setStatusReason("VERIFIED Incident: " + fr.getType() + " severity 3");
-            } else if (fr.getSeverity() == 4 && isBlockingIncidentType(fr.getType())) {
+            } else if (maxSeverity >= 4 && isBlockingIncidentType(fr.getType())) {
                 nearestSeg.setStatus(SegmentStatus.BLOCKED);
                 nearestSeg.setStatusReason("VERIFIED Incident: " + fr.getType() + " severity 4");
             }
@@ -208,6 +239,10 @@ public class FieldReportService {
     public FieldReportDto rejectReport(Long id, String moderatorNote, User moderator) {
         FieldReport fr = fieldReportRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Field report not found: " + id));
+
+        if (fr.getStatus() != ReportStatus.PENDING) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Report is already " + fr.getStatus());
+        }
 
         fr.setStatus(ReportStatus.REJECTED);
         fr.setModeratorNote(moderatorNote);
@@ -254,8 +289,44 @@ public class FieldReportService {
         return nearest;
     }
 
-    private String getExtension(String filename) {
-        if (filename == null || !filename.contains(".")) return ".png";
-        return filename.substring(filename.lastIndexOf("."));
+    private String validateAndGetExtension(MultipartFile file) {
+        if (file == null || file.isEmpty()) return ".png";
+
+        if (file.getSize() > 5 * 1024 * 1024) {
+            throw new ResponseStatusException(HttpStatus.PAYLOAD_TOO_LARGE, "File size exceeds maximum allowed 5 MB");
+        }
+
+        try (InputStream is = file.getInputStream()) {
+            byte[] header = new byte[12];
+            int read = is.read(header, 0, header.length);
+            if (read < 4) {
+                throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Invalid or empty image file");
+            }
+
+            // Check JPEG: FF D8 FF
+            if ((header[0] & 0xFF) == 0xFF && (header[1] & 0xFF) == 0xD8 && (header[2] & 0xFF) == 0xFF) {
+                return ".jpg";
+            }
+
+            // Check PNG: 89 50 4E 47 0D 0A 1A 0A
+            if (read >= 8 &&
+                (header[0] & 0xFF) == 0x89 && header[1] == 0x50 && header[2] == 0x4E && header[3] == 0x47 &&
+                header[4] == 0x0D && header[5] == 0x0A && header[6] == 0x1A && header[7] == 0x0A) {
+                return ".png";
+            }
+
+            // Check WEBP: RIFF....WEBP
+            if (read >= 12 &&
+                header[0] == 'R' && header[1] == 'I' && header[2] == 'F' && header[3] == 'F' &&
+                header[8] == 'W' && header[9] == 'E' && header[10] == 'B' && header[11] == 'P') {
+                return ".webp";
+            }
+
+            throw new ResponseStatusException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported image type. Only JPEG, PNG, and WEBP images are allowed.");
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Could not read image file header");
+        }
     }
 }

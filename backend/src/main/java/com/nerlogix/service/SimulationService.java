@@ -2,11 +2,11 @@ package com.nerlogix.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nerlogix.config.NerlogixProperties;
 import com.nerlogix.entity.*;
 import com.nerlogix.model.enums.RoutePlanStatus;
 import com.nerlogix.model.enums.ShipmentStatus;
 import com.nerlogix.repository.*;
-import com.nerlogix.util.GeoUtils;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,7 +21,7 @@ public class SimulationService {
     private final RoutePlanRepository routePlanRepository;
     private final VehicleRepository vehicleRepository;
     private final VehiclePositionRepository vehiclePositionRepository;
-    private final SettingRepository settingRepository;
+    private final NerlogixProperties nerlogixProperties;
     private final SseService sseService;
     private final ObjectMapper objectMapper;
 
@@ -32,38 +32,38 @@ public class SimulationService {
             RoutePlanRepository routePlanRepository,
             VehicleRepository vehicleRepository,
             VehiclePositionRepository vehiclePositionRepository,
-            SettingRepository settingRepository,
+            NerlogixProperties nerlogixProperties,
             SseService sseService,
             ObjectMapper objectMapper) {
         this.shipmentRepository = shipmentRepository;
         this.routePlanRepository = routePlanRepository;
         this.vehicleRepository = vehicleRepository;
         this.vehiclePositionRepository = vehiclePositionRepository;
-        this.settingRepository = settingRepository;
+        this.nerlogixProperties = nerlogixProperties;
         this.sseService = sseService;
         this.objectMapper = objectMapper;
     }
 
-    @Scheduled(fixedDelayString = "${simulation.tick-ms:3000}")
+    @Scheduled(fixedDelayString = "${nerlogix.simulation.tick-ms:3000}")
     @Transactional
     public void runSimulationTick() {
-        Optional<Setting> simSetting = settingRepository.findBySettingKey("simulation.enabled");
-        if (simSetting.isPresent() && "false".equalsIgnoreCase(simSetting.get().getSettingValue())) {
+        if (!nerlogixProperties.getSimulation().isEnabled()) {
             return;
         }
 
         tickCount++;
-        List<Shipment> activeShipments = shipmentRepository.findAll().stream()
-                .filter(s -> s.getStatus() == ShipmentStatus.IN_TRANSIT || s.getStatus() == ShipmentStatus.DELAYED)
-                .filter(s -> s.getVehicle() != null)
-                .toList();
+        List<Shipment> activeShipments = shipmentRepository.findByStatusIn(
+                List.of(ShipmentStatus.IN_TRANSIT, ShipmentStatus.DELAYED)
+        );
+
+        long tickMs = nerlogixProperties.getSimulation().getTickMs();
 
         for (Shipment s : activeShipments) {
             Vehicle v = s.getVehicle();
             if (v == null) continue;
 
             // If real driver GPS fix newer than 30s, skip simulation
-            if (v.getLastSeen() != null && v.getLastSeen().isAfter(LocalDateTime.now().minusSeconds(30))) {
+            if (v.getLastDriverFixAt() != null && v.getLastDriverFixAt().isAfter(LocalDateTime.now().minusSeconds(30))) {
                 continue;
             }
 
@@ -72,12 +72,13 @@ public class SimulationService {
                 continue;
             }
 
-            List<double[]> coords = parseGeometry(planOpt.get().getGeometry());
+            RoutePlan plan = planOpt.get();
+            List<double[]> coords = parseGeometry(plan.getGeometry());
             if (coords.size() < 2) continue;
 
             double currentProgress = s.getProgressPct() != null ? s.getProgressPct() : 0.0;
             if (currentProgress >= 100.0) {
-                // Reached destination, stay at last point
+                // Reached destination, vehicle stays at destination point until driver delivers
                 double[] destPt = coords.get(coords.size() - 1);
                 v.setLat(destPt[0]);
                 v.setLng(destPt[1]);
@@ -87,8 +88,13 @@ public class SimulationService {
                 continue;
             }
 
-            // Move forward by 3% per tick (or based on coords length)
-            double newProgress = Math.min(100.0, currentProgress + 3.0);
+            double speedKmph = 50.0;
+            double distanceKm = plan.getDistanceKm() > 0 ? plan.getDistanceKm() : 100.0;
+            double distanceTraveledKm = (speedKmph / 3600.0) * (tickMs / 1000.0);
+            double stepPct = (distanceTraveledKm / distanceKm) * 100.0;
+            if (stepPct <= 0.0) stepPct = 2.0;
+
+            double newProgress = Math.min(100.0, currentProgress + stepPct);
             s.setProgressPct(newProgress);
 
             // Interpolate position along coords
@@ -104,30 +110,36 @@ public class SimulationService {
             double lng = p1[1] + (p2[1] - p1[1]) * fraction;
 
             double heading = calculateBearing(p1[0], p1[1], p2[0], p2[1]);
-            double speed = 45.0 + (newProgress % 10.0);
 
             v.setLat(lat);
             v.setLng(lng);
             v.setHeading(heading);
-            v.setSpeedKmph(speed);
+            v.setSpeedKmph(speedKmph);
             v.setLastSeen(LocalDateTime.now());
             vehicleRepository.save(v);
 
             // Store position history every 5th tick
             if (tickCount % 5 == 0) {
-                VehiclePosition pos = new VehiclePosition(v, lat, lng, heading, speed);
+                VehiclePosition pos = new VehiclePosition(v, lat, lng, heading, speedKmph);
                 vehiclePositionRepository.save(pos);
             }
 
             // Update ETA and delay
-            int totalEtaMin = planOpt.get().getEtaMin() != null ? planOpt.get().getEtaMin().intValue() : 180;
-            int remainingMin = (int) (totalEtaMin * (1.0 - (newProgress / 100.0)));
+            int totalEtaMin = plan.getEtaMin() != null ? plan.getEtaMin().intValue() : 180;
+            int remainingMin = (int) Math.max(0, totalEtaMin * (1.0 - (newProgress / 100.0)));
             s.setCurrentEta(LocalDateTime.now().plusMinutes(remainingMin));
 
-            if (s.getPlannedEta() != null && s.getCurrentEta().isAfter(s.getPlannedEta().plusMinutes(20))) {
-                if (s.getStatus() == ShipmentStatus.IN_TRANSIT) {
-                    s.setStatus(ShipmentStatus.DELAYED);
-                    s.setDelayMin((int) java.time.Duration.between(s.getPlannedEta(), s.getCurrentEta()).toMinutes());
+            if (s.getPlannedEta() != null) {
+                if (s.getCurrentEta().isAfter(s.getPlannedEta().plusMinutes(20))) {
+                    if (s.getStatus() == ShipmentStatus.IN_TRANSIT) {
+                        s.setStatus(ShipmentStatus.DELAYED);
+                        s.setDelayMin((int) java.time.Duration.between(s.getPlannedEta(), s.getCurrentEta()).toMinutes());
+                        sseService.broadcast("shipment.updated", Map.of("id", s.getId(), "status", s.getStatus()));
+                    }
+                } else if (s.getStatus() == ShipmentStatus.DELAYED) {
+                    // Revert DELAYED when ETA recovers
+                    s.setStatus(ShipmentStatus.IN_TRANSIT);
+                    s.setDelayMin(0);
                     sseService.broadcast("shipment.updated", Map.of("id", s.getId(), "status", s.getStatus()));
                 }
             }

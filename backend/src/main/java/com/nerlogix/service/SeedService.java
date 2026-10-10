@@ -385,15 +385,16 @@ public class SeedService implements CommandLineRunner {
     }
 
     private void seedRulesAndSettings() {
-        ruleConfigRepository.save(new RuleConfig("risk.rainfall.light", "5", "Rainfall points for light rain"));
-        ruleConfigRepository.save(new RuleConfig("risk.rainfall.moderate", "12", "Rainfall points for moderate rain"));
-        ruleConfigRepository.save(new RuleConfig("risk.rainfall.heavy", "22", "Rainfall points for heavy rain"));
-        ruleConfigRepository.save(new RuleConfig("risk.rainfall.extreme", "30", "Rainfall points for extreme rain"));
-        ruleConfigRepository.save(new RuleConfig("risk.threshold.high", "60", "Threshold for high risk corridor"));
+        // RuleConfig defaults are populated by RuleConfigService.initDefaults()
+        saveSettingIfAbsent("emergency_mode", "false");
+        saveSettingIfAbsent("weather.autoFetch", "true");
+        saveSettingIfAbsent("simulation.enabled", "true");
+    }
 
-        settingRepository.save(new Setting("emergency_mode", "false"));
-        settingRepository.save(new Setting("weather.autoFetch", "true"));
-        settingRepository.save(new Setting("simulation.enabled", "true"));
+    private void saveSettingIfAbsent(String key, String value) {
+        if (settingRepository.findBySettingKey(key).isEmpty()) {
+            settingRepository.save(new Setting(key, value));
+        }
     }
 
     private Shipment createShipment(String code, CargoCategory cat, String desc, double weight, ShipmentPriority prio, RoadNode orig, RoadNode dest, Vehicle v, User driver, ShipmentStatus status) {
