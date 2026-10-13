@@ -32,6 +32,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({ children, titleKey, welcom
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang)
+    localStorage.setItem('mechx4_lang', lang)
     localStorage.setItem('nerlogix_lang', lang)
   }
 
@@ -85,7 +86,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({ children, titleKey, welcom
         {/* Brand Header */}
         <div className="relative z-10 space-y-2">
           <div className="flex items-center gap-3">
-            <span className="font-heading font-black text-3xl tracking-tight text-white">NER-Logix</span>
+            <span className="font-heading font-black text-3xl tracking-tight text-white">Mechx4</span>
             <span className="px-2 py-0.5 rounded bg-river-500/40 text-river-100 text-xs font-mono font-semibold border border-river-400/30">
               v1.0 Operational
             </span>
@@ -160,7 +161,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({ children, titleKey, welcom
             <span>Official essential logistics coordination tool</span>
             <Link to="/about" className="hover:text-white underline flex items-center gap-1 font-semibold">
               <Info className="w-3.5 h-3.5" />
-              {t('whatIsNerlogix')}
+              {t('whatIsMechx4')}
             </Link>
           </div>
         </div>
@@ -171,7 +172,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({ children, titleKey, welcom
         {/* Top Header: Language Switcher */}
         <div className="flex justify-between items-center mb-6">
           <div className="md:hidden flex items-center gap-2">
-            <span className="font-heading font-bold text-xl text-river-600">NER-Logix</span>
+            <span className="font-heading font-bold text-xl text-river-600">Mechx4</span>
           </div>
 
           <div className="flex items-center gap-1 bg-mist-100 p-1 rounded-control text-xs ml-auto">
@@ -215,7 +216,7 @@ export const AuthShell: React.FC<AuthShellProps> = ({ children, titleKey, welcom
 
         {/* Footer info */}
         <div className="mt-8 text-center text-xs text-ink-400">
-          <span>&copy; 2026 NER-Logix • Conventional Logistics Management</span>
+          <span>&copy; 2026 Mechx4 • Conventional Logistics Management</span>
         </div>
       </div>
     </div>

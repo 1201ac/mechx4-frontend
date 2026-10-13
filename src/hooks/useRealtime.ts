@@ -1,43 +1,36 @@
 import { useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useRealtimeHub } from '../realtime/RealtimeProvider';
 
 export function useRealtime(onEvent?: (event: string, data: unknown) => void) {
-  const { user } = useAuth();
+  const { subscribe } = useRealtimeHub();
 
   useEffect(() => {
-    const accessToken = localStorage.getItem('accessToken');
-    if (!accessToken || !user) return;
+    if (!onEvent) return;
 
-    // Use EventSource with query param token fallback for SSE
-    const url = `/api/realtime/stream?token=${encodeURIComponent(accessToken)}`;
-    const eventSource = new EventSource(url);
-
+    // Listen to all common events or pass custom handler
     const eventNames = [
+      'vehicles.positions',
       'vehicle.update',
-      'alert.created',
-      'alert.updated',
+      'user.registered',
+      'shipment.created',
       'shipment.updated',
+      'shipment.assigned',
+      'shipment.unassigned',
+      'dispatch.assigned',
+      'dispatch.accepted',
+      'dispatch.declined',
       'incident.created',
       'incident.updated',
-      'road.updated',
-      'notification.created',
-      'emergency.changed',
-      'weather.updated'
+      'alert.created',
+      'weather.updated',
     ];
 
-    eventNames.forEach(eventName => {
-      eventSource.addEventListener(eventName, (e: MessageEvent) => {
-        try {
-          const parsedData = JSON.parse(e.data);
-          onEvent?.(eventName, parsedData);
-        } catch {
-          onEvent?.(eventName, e.data);
-        }
-      });
-    });
+    const unsubs = eventNames.map((name) =>
+      subscribe(name, (data) => onEvent(name, data))
+    );
 
     return () => {
-      eventSource.close();
+      unsubs.forEach((u) => u());
     };
-  }, [user, onEvent]);
+  }, [onEvent, subscribe]);
 }

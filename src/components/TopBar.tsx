@@ -32,6 +32,7 @@ export const TopBar: React.FC = () => {
 
   const handleLanguageChange = (lang: string) => {
     i18n.changeLanguage(lang)
+    localStorage.setItem('mechx4_lang', lang)
     localStorage.setItem('nerlogix_lang', lang)
     updateProfile({ language: lang })
   }

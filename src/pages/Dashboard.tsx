@@ -6,7 +6,8 @@ import { useAuth } from '../context/AuthContext'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { GoogleMapEmbed } from '../components/GoogleMapEmbed'
 import { getShipments } from '../api/shipments'
-import api from '../api/axios'
+import api, { getErrorMessage } from '../api/axios'
+import { useToast } from '../context/ToastContext'
 
 const COLORS = ['#2F8F5B', '#D98A00', '#C6403A']
 
@@ -23,6 +24,7 @@ interface SupplyItem {
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth()
+  const { success, error: toastError } = useToast()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'kpis' | 'districts' | 'supply'>('kpis')
   const [selectedDistrictMap, setSelectedDistrictMap] = useState<{ name: string; state: string } | null>(null)
@@ -97,8 +99,10 @@ export const Dashboard: React.FC = () => {
       await api.post('/settings/emergency', { enabled })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
+      success('Emergency mode toggled');
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
     },
+    onError: (err) => toastError(getErrorMessage(err)),
   })
 
   // Update Stock Mutation
@@ -114,10 +118,12 @@ export const Dashboard: React.FC = () => {
       })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['dashboard-supply'] })
-      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] })
-      setEditingStock(null)
+      success('District stock updated');
+      queryClient.invalidateQueries({ queryKey: ['dashboard-supply'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      setEditingStock(null);
     },
+    onError: (err) => toastError(getErrorMessage(err)),
   })
 
   const myActiveShipment = myShipments?.content?.[0]
@@ -222,7 +228,14 @@ export const Dashboard: React.FC = () => {
 
       {/* KPI Bar */}
       {loadingSummary ? (
-        <div className="text-center py-6 text-ink-600">Loading summary KPIs...</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 animate-pulse">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white p-3.5 rounded-xl border border-mist-200 space-y-2">
+              <div className="h-3 w-16 bg-mist-200 rounded" />
+              <div className="h-6 w-10 bg-mist-300 rounded" />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
           <div className="bg-white p-3.5 rounded-xl border border-mist-200 space-y-1">

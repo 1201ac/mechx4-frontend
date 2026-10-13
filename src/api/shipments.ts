@@ -57,7 +57,22 @@ export const getShipments = async (params?: {
   size?: number;
 }): Promise<ShipmentPageResponse> => {
   const res = await api.get('/shipments', { params });
-  return res.data;
+  if (Array.isArray(res.data)) {
+    return {
+      content: res.data,
+      page: 0,
+      size: res.data.length,
+      totalElements: res.data.length,
+      totalPages: 1,
+    };
+  }
+  return {
+    content: res.data?.content || [],
+    page: res.data?.number ?? res.data?.page ?? 0,
+    size: res.data?.size ?? 20,
+    totalElements: res.data?.totalElements ?? (res.data?.content?.length || 0),
+    totalPages: res.data?.totalPages ?? 1,
+  };
 };
 
 export const getShipmentById = async (id: number): Promise<Shipment> => {
@@ -89,6 +104,10 @@ export const updateShipment = async (id: number, data: Partial<Shipment>): Promi
 export const assignShipment = async (id: number, vehicleId: number, driverUserId: number): Promise<Shipment> => {
   const res = await api.post(`/shipments/${id}/assign`, { vehicleId, driverUserId });
   return res.data;
+};
+
+export const unassignShipment = async (id: number): Promise<void> => {
+  await api.post(`/dispatch/unassign/${id}`);
 };
 
 export const startShipment = async (id: number): Promise<Shipment> => {

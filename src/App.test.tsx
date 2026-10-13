@@ -22,6 +22,6 @@ describe('App', () => {
       json: async () => ({ status: 'UP', database: 'UP' }),
     }))
     render(<App />)
-    expect(screen.getAllByText('NER-Logix').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Mechx4').length).toBeGreaterThan(0)
   })
 })

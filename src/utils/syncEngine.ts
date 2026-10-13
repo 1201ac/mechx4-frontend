@@ -18,21 +18,21 @@ export interface QueuedReport {
   createdAt: string;
 }
 
-interface NERLogixDB extends DBSchema {
+interface Mechx4DB extends DBSchema {
   queuedReports: {
     key: string;
     value: QueuedReport;
   };
 }
 
-const DB_NAME = 'nerlogix-offline-db';
+const DB_NAME = 'mechx4-offline-db';
 const DB_VERSION = 1;
 
-let dbPromise: Promise<IDBPDatabase<NERLogixDB>> | null = null;
+let dbPromise: Promise<IDBPDatabase<Mechx4DB>> | null = null;
 
 function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<NERLogixDB>(DB_NAME, DB_VERSION, {
+    dbPromise = openDB<Mechx4DB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
         if (!db.objectStoreNames.contains('queuedReports')) {
           db.createObjectStore('queuedReports', { keyPath: 'clientId' });
