@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { WifiOff, RefreshCw, Loader2, AlertTriangle } from 'lucide-react';
+import { WifiOff, RefreshCw, Loader2 } from 'lucide-react';
 import { flushQueue } from '../utils/syncEngine';
-import { onWarmupChange, apiBaseUrl } from '../api/axios';
+import { onWarmupChange } from '../api/axios';
 
 export const OfflineBanner: React.FC = () => {
   const [isOffline, setIsOffline] = useState<boolean>(!navigator.onLine);
   const [isWarmingUp, setIsWarmingUp] = useState<boolean>(false);
-  const [dismissedApiBanner, setDismissedApiBanner] = useState<boolean>(false);
-
-  const isMissingApiUrl = import.meta.env.PROD && !(import.meta.env.VITE_API_BASE_URL || '').trim();
 
   useEffect(() => {
     const handleOnline = () => {

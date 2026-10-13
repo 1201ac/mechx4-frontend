@@ -27,7 +27,6 @@ import { AppShell } from './components/AppShell'
 import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
-import { apiBaseUrl } from './api/axios'
 
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })))
 const MapPage = React.lazy(() => import('./pages/MapPage').then(m => ({ default: m.MapPage })))
