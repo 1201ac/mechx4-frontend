@@ -27,6 +27,7 @@ import { AppShell } from './components/AppShell'
 import { Landing } from './pages/Landing'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
+import { apiBaseUrl } from './api/axios'
 
 const Dashboard = React.lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })))
 const MapPage = React.lazy(() => import('./pages/MapPage').then(m => ({ default: m.MapPage })))
@@ -62,7 +63,7 @@ function PageLoading() {
 
 function MissingApiBaseUrlBanner() {
   const isEnvSet = Boolean(import.meta.env.VITE_API_BASE_URL && String(import.meta.env.VITE_API_BASE_URL).trim());
-  if (!import.meta.env.PROD || isEnvSet) {
+  if (!import.meta.env.PROD || isEnvSet || (apiBaseUrl && apiBaseUrl.startsWith('http'))) {
     return null;
   }
 
