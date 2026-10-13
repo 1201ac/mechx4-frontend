@@ -3,6 +3,8 @@ dist/
 .env
 .env.*
 !.env.example
-
+*.log
+.idea/
+.vscode/
 playwright-report/
 test-results/
