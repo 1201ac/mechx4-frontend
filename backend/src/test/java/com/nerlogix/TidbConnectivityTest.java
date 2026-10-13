@@ -92,44 +92,50 @@ class TidbConnectivityTest {
                 }
             }
 
-            System.out.println("Testing CREATE DATABASE IF NOT EXISTS mechx4...");
+            System.out.println("Checking permissions on sys database...");
             try {
-                stmt.execute("CREATE DATABASE IF NOT EXISTS mechx4");
-                System.out.println("SUCCESS: Database 'mechx4' created or already exists!");
+                stmt.execute("CREATE TABLE IF NOT EXISTS test_sys_ping (id INT)");
+                stmt.execute("DROP TABLE IF EXISTS test_sys_ping");
+                System.out.println("sys database is writable.");
             } catch (Exception e) {
-                System.err.println("CREATE DATABASE failed: " + e.getMessage());
+                System.out.println("As expected in MySQL/TiDB: 'sys' is a protected system schema (not for application tables): " + e.getMessage());
             }
 
-            // Check permissions in mechx4 or test
+            // Provision and migrate application database 'mechx4'
             String appDb = "mechx4";
+            System.out.println("Ensuring application database '" + appDb + "' exists...");
+            try {
+                stmt.execute("CREATE DATABASE IF NOT EXISTS " + appDb);
+                System.out.println("SUCCESS: Database '" + appDb + "' exists and is accessible.");
+            } catch (Exception e) {
+                System.err.println("CREATE DATABASE warning: " + e.getMessage());
+            }
+
             String appDbUrl = "jdbc:mysql://" + host + ":" + port + "/" + appDb
                     + "?sslMode=VERIFY_IDENTITY&enabledTLSProtocols=TLSv1.2,TLSv1.3";
 
+            System.out.println("Running Flyway migration in dedicated application database: " + appDb + "...");
+            Flyway flyway = Flyway.configure()
+                    .dataSource(appDbUrl, username, dbPassword)
+                    .baselineOnMigrate(false)
+                    .locations("classpath:db/migration")
+                    .cleanDisabled(true)
+                    .load();
+
+            flyway.migrate();
+            System.out.println("SUCCESS: Flyway migration completed successfully in " + appDb + "!");
+
             try (Connection appConn = DriverManager.getConnection(appDbUrl, username, dbPassword);
-                 Statement appStmt = appConn.createStatement()) {
-
-                System.out.println("Connected to " + appDb + "! Testing table creation...");
-                appStmt.execute("CREATE TABLE IF NOT EXISTS test_ping (id INT PRIMARY KEY)");
-                System.out.println("SUCCESS: Table creation succeeded in " + appDb + "!");
-                appStmt.execute("DROP TABLE IF EXISTS test_ping");
-
-                System.out.println("Running Flyway migration in " + appDb + "...");
-                Flyway flyway = Flyway.configure()
-                        .dataSource(appDbUrl, username, dbPassword)
-                        .baselineOnMigrate(false)
-                        .locations("classpath:db/migration")
-                        .cleanDisabled(true)
-                        .load();
-
-                flyway.migrate();
-                System.out.println("SUCCESS: Flyway migration completed successfully in " + appDb + "!");
-
-                try (ResultSet rs = appStmt.executeQuery("SHOW TABLES")) {
-                    System.out.println("Tables now in " + appDb + ":");
-                    while (rs.next()) {
-                        System.out.println(" - " + rs.getString(1));
-                    }
+                 Statement appStmt = appConn.createStatement();
+                 ResultSet rs = appStmt.executeQuery("SHOW TABLES")) {
+                System.out.println("Application tables verified in " + appDb + ":");
+                int count = 0;
+                while (rs.next()) {
+                    System.out.println(" - " + rs.getString(1));
+                    count++;
                 }
+                assertThat(count).isGreaterThanOrEqualTo(20);
+                System.out.println("Total tables verified: " + count);
             }
 
         } catch (Exception e) {
