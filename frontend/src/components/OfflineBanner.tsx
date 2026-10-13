@@ -62,22 +62,5 @@ export const OfflineBanner: React.FC = () => {
     );
   }
 
-  if (isMissingApiUrl && !dismissedApiBanner) {
-    return (
-      <div className="bg-amber-600 text-white px-4 py-2 text-xs font-medium flex items-center justify-between shadow-md z-50 sticky top-0 animate-fade-in">
-        <div className="flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 shrink-0" />
-          <span>VITE_API_BASE_URL is not explicitly configured in this production build. Using default Render backend ({apiBaseUrl}).</span>
-        </div>
-        <button
-          onClick={() => setDismissedApiBanner(true)}
-          className="px-2.5 py-0.5 bg-amber-700 hover:bg-amber-800 rounded font-semibold text-[11px] transition"
-        >
-          Dismiss
-        </button>
-      </div>
-    );
-  }
-
   return null;
 };
