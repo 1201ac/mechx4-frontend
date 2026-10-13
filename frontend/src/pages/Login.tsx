@@ -47,7 +47,7 @@ export const Login: React.FC = () => {
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: 'user@nerlogix.com',
+      email: 'user@mechx4.com',
       password: 'Demo@1234',
     },
   })
@@ -82,14 +82,21 @@ export const Login: React.FC = () => {
       }, 1000)
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
-        const status = (err as { response?: { status?: number; data?: { message?: string } } }).response?.status
+        const res = (err as { response?: { status?: number; data?: { message?: string; error?: string } } }).response
+        const status = res?.status
         if (status === 429) {
           setErrorMessage(t('tooManyAttempts'))
+        } else if (status === 401 || status === 400) {
+          setErrorMessage(res?.data?.message || t('invalidCredentials'))
+        } else if (status === 502 || status === 503 || status === 504) {
+          setErrorMessage('Backend service is spinning up or temporarily unavailable. Please retry in a moment.')
         } else {
-          setErrorMessage(t('invalidCredentials'))
+          setErrorMessage(res?.data?.message || t('invalidCredentials'))
         }
+      } else if (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'ERR_NETWORK') {
+        setErrorMessage('Network error: Unable to connect to backend server. Please check your connection or CORS configuration.')
       } else {
-        setErrorMessage('Failed to sign in. Please check your credentials.')
+        setErrorMessage('Failed to connect to the authentication service. Please retry.')
       }
     }
   }
@@ -107,7 +114,7 @@ export const Login: React.FC = () => {
             type="button"
             role="radio"
             aria-checked={selectedRoleTile === 'USER'}
-            onClick={() => fillDemoRole('user@nerlogix.com', 'USER')}
+            onClick={() => fillDemoRole('user@mechx4.com', 'USER')}
             className={`p-3 rounded-control text-left border transition ${
               selectedRoleTile === 'USER'
                 ? 'bg-river-100/60 border-river-600 ring-2 ring-river-600/20'
@@ -128,7 +135,7 @@ export const Login: React.FC = () => {
             type="button"
             role="radio"
             aria-checked={selectedRoleTile === 'MODERATOR'}
-            onClick={() => fillDemoRole('moderator@nerlogix.com', 'MODERATOR')}
+            onClick={() => fillDemoRole('moderator@mechx4.com', 'MODERATOR')}
             className={`p-3 rounded-control text-left border transition ${
               selectedRoleTile === 'MODERATOR'
                 ? 'bg-river-100/60 border-river-600 ring-2 ring-river-600/20'
@@ -149,7 +156,7 @@ export const Login: React.FC = () => {
             type="button"
             role="radio"
             aria-checked={selectedRoleTile === 'ADMIN'}
-            onClick={() => fillDemoRole('admin@nerlogix.com', 'ADMIN')}
+            onClick={() => fillDemoRole('admin@mechx4.com', 'ADMIN')}
             className={`p-3 rounded-control text-left border transition ${
               selectedRoleTile === 'ADMIN'
                 ? 'bg-river-100/60 border-river-600 ring-2 ring-river-600/20'
@@ -185,7 +192,7 @@ export const Login: React.FC = () => {
               type="email"
               {...register('email')}
               className="w-full pl-9 pr-3 py-2.5 bg-white border border-mist-200 rounded-control text-sm font-medium focus:outline-none focus:ring-2 focus:ring-river-600"
-              placeholder="user@nerlogix.com"
+              placeholder="user@mechx4.com"
             />
           </div>
           {errors.email && (
@@ -234,7 +241,7 @@ export const Login: React.FC = () => {
           Don't have an account? Register
         </Link>
         <Link to="/about" className="text-ink-600 hover:text-ink-900 underline font-medium">
-          {t('whatIsNerlogix')}
+          {t('whatIsMechx4')}
         </Link>
       </div>
     </AuthShell>

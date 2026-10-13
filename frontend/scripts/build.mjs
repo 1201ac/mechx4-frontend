@@ -1,12 +1,14 @@
 import { execSync } from 'child_process'
 import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
-const rootDir = process.cwd()
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const rootDir = path.resolve(__dirname, '..', '..')
 const isWin = process.platform === 'win32'
 const mvnCmd = isWin ? '.\\mvnw.cmd' : './mvnw'
 
-console.log('=== NER-Logix Build ===')
+console.log('=== Mechx4 Build ===')
 
 function copyDirSync(src, dest) {
   fs.mkdirSync(dest, { recursive: true })
@@ -38,7 +40,7 @@ try {
   console.log('Building backend JAR...')
   execSync(`${mvnCmd} -q -DskipTests clean package`, { cwd: path.join(rootDir, 'backend'), stdio: 'inherit' })
 
-  console.log('Build completed successfully: backend/target/nerlogix.jar')
+  console.log('Build completed successfully: backend/target/mechx4.jar')
 } catch (err) {
   console.error('Build failed:', err.message)
   process.exit(1)

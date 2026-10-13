@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: mechx4-backend
+    region: singapore
+    env: docker
+    dockerfilePath: Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: MECHX4_JWT_SECRET
+        sync: false
+      - key: NERLOGIX_JWT_SECRET
+        sync: false
+      - key: MECHX4_CORS_ALLOWED_ORIGINS
+        value: "https://mechx4-frontend.vercel.app,https://*.vercel.app"
+      - key: NERLOGIX_CORS_ALLOWED_ORIGINS
+        value: "https://mechx4-frontend.vercel.app,https://*.vercel.app"
+      - key: MECHX4_SIMULATION_ENABLED
+        value: "false"
+      - key: MECHX4_SIMULATION_TICK_MS
+        value: "5000"

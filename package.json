@@ -1,9 +1,13 @@
 {
-  "name": "nerlogix-root",
+  "name": "mechx4-root",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "devDependencies": {
-    "@playwright/test": "^1.47.2"
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "lint": "npm --prefix frontend run lint",
+    "test": "npm --prefix frontend run test"
   }
 }

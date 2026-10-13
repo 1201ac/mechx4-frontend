@@ -1,8 +1,9 @@
 import { execSync } from 'child_process'
 import path from 'path'
-import fileURLToPath from 'url'
+import { fileURLToPath } from 'url'
 
-const rootDir = process.cwd()
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const rootDir = path.resolve(__dirname, '..', '..')
 
 function runStep(name, cmd, cwd) {
   process.stdout.write(`Running ${name}... `)
@@ -21,7 +22,7 @@ function runStep(name, cmd, cwd) {
 const isWin = process.platform === 'win32'
 const mvnCmd = isWin ? '.\\mvnw.cmd' : './mvnw'
 
-console.log('=== NER-Logix Check ===')
+console.log('=== Mechx4 Check ===')
 runStep('Backend compile & tests', `${mvnCmd} -q test`, path.join(rootDir, 'backend'))
 runStep('Frontend typecheck', 'npm run typecheck', path.join(rootDir, 'frontend'))
 runStep('Frontend lint', 'npm run lint', path.join(rootDir, 'frontend'))

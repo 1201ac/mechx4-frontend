@@ -1,7 +1,8 @@
-import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
-const rootDir = process.cwd()
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const rootDir = path.resolve(__dirname, '..', '..')
 
 function cleanDir(dirPath) {
   if (fs.existsSync(dirPath)) {

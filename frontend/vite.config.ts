@@ -9,9 +9,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       manifest: {
-        name: 'NER-Logix',
-        short_name: 'NER-Logix',
-        description: 'Logistics and Accessibility Management Platform for the North Eastern Region',
+        name: 'Mechx4',
+        short_name: 'Mechx4',
+        description: 'Mechx4 - Logistics and Accessibility Management Platform',
         theme_color: '#14597A',
         background_color: '#F7F9F8',
         display: 'standalone',
@@ -29,20 +29,10 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.basemaps\.cartocdn\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'carto-tiles',
-              expiration: {
-                maxEntries: 500,
-                maxAgeSeconds: 60 * 60 * 24 * 30
-              }
-            }
-          }
-        ]
+        cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}']
       }
     })
   ],
@@ -50,7 +40,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          leaflet: ['leaflet', 'react-leaflet'],
           recharts: ['recharts'],
           vendor: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query', 'axios', 'lucide-react', 'i18next', 'react-i18next']
         }
@@ -75,6 +64,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: './src/test/setup.ts'
+    setupFiles: './src/test/setup.ts',
+    exclude: ['**/e2e/**', '**/node_modules/**']
   }
 })

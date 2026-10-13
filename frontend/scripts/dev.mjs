@@ -1,11 +1,13 @@
 import { spawn } from 'child_process'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
-const rootDir = process.cwd()
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const rootDir = path.resolve(__dirname, '..', '..')
 const isWin = process.platform === 'win32'
 const mvnCmd = isWin ? '.\\mvnw.cmd' : './mvnw'
 
-console.log('Starting NER-Logix Backend & Frontend dev servers...')
+console.log('Starting Mechx4 Backend & Frontend dev servers...')
 
 const backend = spawn(mvnCmd, ['spring-boot:run'], {
   cwd: path.join(rootDir, 'backend'),

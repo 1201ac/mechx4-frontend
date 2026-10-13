@@ -4,7 +4,10 @@ import net from 'net'
 import path from 'path'
 import fs from 'fs'
 
-const rootDir = process.cwd()
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const rootDir = path.resolve(__dirname, '..', '..')
 
 async function findFreePort() {
   return new Promise((resolve) => {
@@ -39,18 +42,21 @@ async function waitForHealth(port, maxTries = 60) {
 }
 
 async function runVerify() {
-  console.log('=== NER-Logix Verification ===')
+  console.log('=== Mechx4 Verification ===')
 
   console.log('1. Running check script...')
-  execSync('node scripts/check.mjs', { stdio: 'inherit' })
+  execSync(`node "${path.join(__dirname, 'check.mjs')}"`, { stdio: 'inherit' })
   console.log('Check passed.')
 
   console.log('2. Building application...')
-  execSync('node scripts/build.mjs', { stdio: 'inherit' })
+  execSync(`node "${path.join(__dirname, 'build.mjs')}"`, { stdio: 'inherit' })
   console.log('Build passed.')
 
   const port = await findFreePort()
-  const jarPath = path.join(rootDir, 'backend', 'target', 'nerlogix.jar')
+  let jarPath = path.join(rootDir, 'backend', 'target', 'mechx4.jar')
+  if (!fs.existsSync(jarPath)) {
+    jarPath = path.join(rootDir, 'backend', 'target', 'nerlogix.jar')
+  }
   
   if (!fs.existsSync(jarPath)) {
     console.error('FAIL: Built jar file not found at', jarPath)
@@ -58,10 +64,10 @@ async function runVerify() {
   }
 
   console.log(`3. Starting server on port ${port}...`)
-  const tempDbDir = path.join(rootDir, 'data', `verify_${Date.now()}`)
+  const tempDbDir = path.join(rootDir, 'backend', 'data', `verify_${Date.now()}`)
   const appProc = spawn('java', [
     `-Dserver.port=${port}`,
-    `-Dspring.datasource.url=jdbc:h2:file:${tempDbDir}/db;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE`,
+    `-Dspring.datasource.url=jdbc:h2:file:${tempDbDir}/db;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH`,
     '-jar',
     jarPath
   ], { stdio: 'pipe' })
@@ -93,6 +99,7 @@ async function runVerify() {
   console.log('4. Running Playwright E2E tests...')
   try {
     execSync(`npx playwright test`, {
+      cwd: path.join(rootDir, 'frontend'),
       env: { ...process.env, BASE_URL: `http://localhost:${port}` },
       stdio: 'inherit'
     })

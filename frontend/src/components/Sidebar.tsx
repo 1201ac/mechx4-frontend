@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import {
   MapPin, LayoutDashboard, CloudRain, Navigation,
   AlertTriangle, ShieldAlert, Truck, Package,
-  FileText, Clock, Users, Sliders, Key, History, Wrench, Settings, Database
+  FileText, Clock, Users, Sliders, Key, History, Wrench, Settings, Database, Compass
 } from 'lucide-react'
 import { useAuth, Role } from '../context/AuthContext'
 import api from '../api/axios'
@@ -55,11 +55,13 @@ export const Sidebar: React.FC = () => {
     {
       titleKey: 'operations',
       items: [
+        { key: 'dispatchBoard', to: '/dispatch', icon: Compass, roles: ['MODERATOR', 'ADMIN'] },
         { key: 'roadStatus', to: '/roads', icon: AlertTriangle, roles: ['MODERATOR', 'ADMIN'] },
         { key: 'incidentsLog', to: '/incidents', icon: ShieldAlert, roles: ['MODERATOR', 'ADMIN'] },
         { key: 'shipments', to: '/shipments', icon: Package, roles: ['MODERATOR', 'ADMIN'] },
         { key: 'myDeliveries', to: '/shipments', icon: Package, roles: ['USER'] },
         { key: 'vehicles', to: '/vehicles', icon: Truck, roles: ['MODERATOR', 'ADMIN'] },
+        { key: 'drivers', to: '/drivers', icon: Users, roles: ['MODERATOR', 'ADMIN'] },
         { key: 'alerts', to: '/alerts', icon: AlertTriangle },
         { key: 'driverMode', to: '/driver', icon: Truck, roles: ['USER'] },
       ],

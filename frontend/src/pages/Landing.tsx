@@ -84,7 +84,7 @@ export const Landing: React.FC = () => {
       {/* Top Header */}
       <header className="h-16 bg-white border-b border-mist-200 px-8 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="font-heading font-bold text-xl text-river-600">NER-Logix</span>
+          <span className="font-heading font-bold text-xl text-river-600">Mechx4</span>
           <span className="text-xs bg-river-100 text-river-700 font-semibold px-2 py-0.5 rounded">Platform Demo</span>
         </div>
         <div className="flex items-center gap-4">
@@ -110,7 +110,7 @@ export const Landing: React.FC = () => {
             Know which roads are open before your convoy leaves.
           </h1>
           <p className="text-ink-600 text-lg mb-8 leading-relaxed">
-            NER-Logix provides rule-based logistics coordination, real-time GPS tracking, and instant route diversions across the North Eastern Region of India.
+            Mechx4 provides rule-based logistics coordination, real-time GPS tracking, and instant route diversions across the North Eastern Region of India.
           </p>
           <div className="flex flex-wrap gap-4 mb-12">
             <Link
@@ -311,7 +311,7 @@ export const Landing: React.FC = () => {
       <footer className="py-12 bg-white border-t border-mist-200 px-8 text-center text-xs text-ink-600">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div>
-            <span className="font-bold text-ink-900">NER-Logix Platform</span> — Logistics and Accessibility Management Platform for the North Eastern Region.
+            <span className="font-bold text-ink-900">Mechx4 Platform</span> — Logistics and Accessibility Management Platform for the North Eastern Region.
           </div>
           <div className="flex items-center gap-4">
             <Link to="/login" className="hover:text-river-600 font-semibold">Sign in</Link>
